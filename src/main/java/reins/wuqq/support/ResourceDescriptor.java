@@ -5,6 +5,7 @@ import lombok.val;
 import org.apache.mesos.Protos;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -15,6 +16,7 @@ public final class ResourceDescriptor {
     private final double cpus;
     private final long memory;
     private final long disk;
+    private final List<Integer> ports = new ArrayList<>();
 
     public ResourceDescriptor(@Nonnull final List<Protos.Resource> resources) {
         val resouceMap = resources

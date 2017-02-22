@@ -1,4 +1,4 @@
-package reins.wuqq.scheduler;
+package reins.wuqq.resource;
 
 import lombok.val;
 import org.apache.mesos.MesosSchedulerDriver;

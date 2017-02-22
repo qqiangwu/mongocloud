@@ -20,6 +20,8 @@ public class Instance {
 
     @Nullable
     private String hostIP;
+    @Nullable
+    private Integer port;
 
     private Map<String, String> env = new HashMap<>();
 }

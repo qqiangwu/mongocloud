@@ -12,7 +12,7 @@ import reins.wuqq.cluster.StateHandler;
 import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
-import reins.wuqq.scheduler.FrameworkDetail;
+import reins.wuqq.resource.FrameworkDetail;
 import reins.wuqq.support.InstanceUtil;
 
 import javax.annotation.Nonnull;

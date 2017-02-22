@@ -1,7 +1,8 @@
-package reins.wuqq.scheduler;
+package reins.wuqq.resource;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.*;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.Network;
@@ -102,7 +103,8 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private TaskInfo buildTask(final Instance instance, final Offer offer) {
-        val dockerInfo = buildContainer(instance);
+        val portMapping = preparePortMapping(instance, offer);
+        val dockerInfo = buildContainer(instance, portMapping);
         val containerInfo = ContainerInfo.newBuilder().setDocker(dockerInfo);
 
         return TaskInfo.newBuilder()
@@ -113,8 +115,21 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .setCommand(NULL_COMMAND)
                 .addResources(getMemRequirement(instance))
                 .addResources(getCPURequirement(instance))
-                // FIXME
-                //.addResources(getDiskRequirement(instance))
+                .addResources(getDiskRequirement(instance))
+                .addResources(getPortMapping(portMapping))
+                .build();
+    }
+
+    private DockerInfo.PortMapping preparePortMapping(final Instance instance, final Offer offer) {
+        val containerPort = 27017;
+        val hostPort = new ResourceDescriptor(offer.getResourcesList()).getPorts().get(0);
+
+        instance.setPort(hostPort);
+
+        return DockerInfo.PortMapping.newBuilder()
+                .setContainerPort(containerPort)
+                .setHostPort(hostPort)
+                .setProtocol("tcp")
                 .build();
     }
 
@@ -123,7 +138,11 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
             .build();
 
     private Resource getDiskRequirement(final Instance instance) {
-        return Resource.newBuilder().build();
+        return Resource.newBuilder()
+                .setName("disk")
+                .setType(Type.SCALAR)
+                .setScalar(Scalar.newBuilder().setValue(instance.getDisk()))
+                .build();
     }
 
     private Resource getCPURequirement(final Instance instance) {
@@ -142,10 +161,19 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .build();
     }
 
-    private DockerInfo buildContainer(final Instance instance) {
+    private Resource getPortMapping(final DockerInfo.PortMapping mapping) {
+        return Resource.newBuilder()
+                .setName("ports")
+                .setType(Type.SCALAR)
+                .setScalar(Scalar.newBuilder().setValue(mapping.getHostPort()))
+                .build();
+    }
+
+    private DockerInfo buildContainer(final Instance instance, final DockerInfo.PortMapping portMapping) {
         return DockerInfo.newBuilder()
                 .setImage(instance.getImage())
                 .setNetwork(Network.BRIDGE)
+                .addPortMappings(portMapping)
                 .build();
     }
 
@@ -159,6 +187,9 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
             return false;
         }
         if (offeredResourceDesc.getDisk() < instance.getDisk()) {
+            return false;
+        }
+        if (offeredResourceDesc.getPorts().isEmpty()) {
             return false;
         }
 

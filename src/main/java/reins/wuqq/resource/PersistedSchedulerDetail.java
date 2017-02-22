@@ -1,4 +1,4 @@
-package reins.wuqq.scheduler;
+package reins.wuqq.resource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
