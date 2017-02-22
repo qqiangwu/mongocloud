@@ -13,6 +13,7 @@ public class Instance {
     private String name;
     private String id;
     private String image;
+    private String args;
 
     private double cpus;
     private long memory;

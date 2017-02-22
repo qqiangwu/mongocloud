@@ -16,8 +16,11 @@ import java.util.UUID;
 
 @Component
 public class PreparingProxyHandler extends AbstractStateHandler {
-    @Value("${docker.proxy}")
+    @Value("${docker.proxy.image}")
     private String dockerImageForProxyServer;
+
+    @Value("${docker.proxy.args}")
+    private String dockerArgs;
 
     @Override
     public ClusterState getState() {
@@ -62,6 +65,7 @@ public class PreparingProxyHandler extends AbstractStateHandler {
         proxyInstance.setId(UUID.randomUUID().toString());
         proxyInstance.setType(InstanceType.PROXY_SERVER);
         proxyInstance.setImage(dockerImageForProxyServer);
+        proxyInstance.setArgs(dockerArgs);
         proxyInstance.getEnv().put("config", configServerIP);
 
         return proxyInstance;

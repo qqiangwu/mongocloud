@@ -2,7 +2,6 @@ package reins.wuqq.resource;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.*;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.Network;
@@ -104,15 +103,15 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
     private TaskInfo buildTask(final Instance instance, final Offer offer) {
         val portMapping = preparePortMapping(instance, offer);
-        val dockerInfo = buildContainer(instance, portMapping);
-        val containerInfo = ContainerInfo.newBuilder().setDocker(dockerInfo);
+        val containerInfo = buildContainer(instance, portMapping);
+        val commandInfo = buildCommand(instance);
 
         return TaskInfo.newBuilder()
                 .setTaskId(MesosUtil.toID(instance.getId()))
                 .setName(ClusterUtil.getTaskName(instance))
                 .setSlaveId(offer.getSlaveId())
                 .setContainer(containerInfo)
-                .setCommand(NULL_COMMAND)
+                .setCommand(commandInfo)
                 .addResources(getMemRequirement(instance))
                 .addResources(getCPURequirement(instance))
                 .addResources(getDiskRequirement(instance))
@@ -130,6 +129,13 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .setContainerPort(containerPort)
                 .setHostPort(hostPort)
                 .setProtocol("tcp")
+                .build();
+    }
+
+    private CommandInfo buildCommand(final Instance instance) {
+        return CommandInfo.newBuilder()
+                .setShell(false)
+                .addArguments(instance.getArgs())
                 .build();
     }
 
@@ -169,12 +175,15 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .build();
     }
 
-    private DockerInfo buildContainer(final Instance instance, final DockerInfo.PortMapping portMapping) {
-        return DockerInfo.newBuilder()
+    private ContainerInfo.Builder buildContainer(final Instance instance, final DockerInfo.PortMapping portMapping) {
+        val docker = DockerInfo.newBuilder()
                 .setImage(instance.getImage())
                 .setNetwork(Network.BRIDGE)
+                .setForcePullImage(false)
                 .addPortMappings(portMapping)
                 .build();
+
+        return ContainerInfo.newBuilder().setDocker(docker);
     }
 
     private boolean hasSufficientResource(final List<Resource> offeredResources, final Instance instance) {

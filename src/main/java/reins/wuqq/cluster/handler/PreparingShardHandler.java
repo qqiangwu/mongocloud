@@ -15,8 +15,11 @@ import java.util.UUID;
 
 @Component
 public class PreparingShardHandler extends AbstractStateHandler {
-    @Value("${docker.shard}")
+    @Value("${docker.shard.image}")
     private String dockerImageForShardServer;
+
+    @Value("${docker.shard.args}")
+    private String dockerArgs;
 
     @Override
     public ClusterState getState() {
@@ -45,6 +48,7 @@ public class PreparingShardHandler extends AbstractStateHandler {
         instance.setId(UUID.randomUUID().toString());
         instance.setType(InstanceType.SHARD);
         instance.setImage(dockerImageForShardServer);
+        instance.setArgs(dockerArgs);
 
         resourceProvider.launch(instance);
         clusterDetail.addInstance(instance);

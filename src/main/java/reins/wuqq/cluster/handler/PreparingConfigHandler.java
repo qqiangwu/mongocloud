@@ -15,8 +15,11 @@ import java.util.UUID;
 
 @Component
 public class PreparingConfigHandler extends AbstractStateHandler {
-    @Value("${docker.config}")
+    @Value("${docker.config.image}")
     private String dockerImageForConfigServer;
+
+    @Value("${docker.config.args}")
+    private String dockerArgs;
 
     @Override
     public ClusterState getState() {
@@ -60,6 +63,7 @@ public class PreparingConfigHandler extends AbstractStateHandler {
         instance.setId(UUID.randomUUID().toString());
         instance.setType(InstanceType.CONFIG_SERVER);
         instance.setImage(dockerImageForConfigServer);
+        instance.setArgs(dockerArgs);
 
         return instance;
     }
