@@ -58,7 +58,7 @@ public class PreparingProxyHandler extends AbstractStateHandler {
     }
 
     private Instance prepareProxyInstance() {
-        val configServerIP = getConfigServerIP();
+        val configServerAddr = getConfigServerAddr();
         val proxyInstance = new Instance();
 
         proxyInstance.setName("ProxyServer");
@@ -66,7 +66,7 @@ public class PreparingProxyHandler extends AbstractStateHandler {
         proxyInstance.setType(InstanceType.PROXY_SERVER);
         proxyInstance.setImage(dockerImageForProxyServer);
         proxyInstance.setArgs(dockerArgs);
-        proxyInstance.getEnv().put("config", configServerIP);
+        proxyInstance.getEnv().put("CONFIG_SERVER", configServerAddr);
 
         return proxyInstance;
     }
@@ -75,11 +75,12 @@ public class PreparingProxyHandler extends AbstractStateHandler {
         mongoCluster.transitTo(ClusterState.PREPARING_SHARD);
     }
 
-    private String getConfigServerIP() {
-        return clusterDetail.getConfigServer()
+    private String getConfigServerAddr() {
+        val confServer = clusterDetail.getConfigServer()
                 .filter(InstanceUtil.withState(InstanceState.RUNNING))
-                .orElseThrow(ErrorUtil.thrower("ConfigServer not launched"))
-                .getHostIP();
+                .orElseThrow(ErrorUtil.thrower("ConfigServer not launched"));
+
+        return String.format("%s:%s", confServer.getHostIP(), confServer.getPort());
     }
 
     @Override
