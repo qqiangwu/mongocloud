@@ -27,7 +27,7 @@ public class MongoMApplication {
 	}
 
 	@Bean
-	public ZooKeeperState zooKeeperState(@Value("zk.mongo") String zk) {
+	public ZooKeeperState zooKeeperState(@Value("${zk.mongo}") final String zk) {
         val matcher = ZKParser.validateZkUrl(zk);
 
         return new ZooKeeperState(matcher.group(1), 10, TimeUnit.SECONDS, matcher.group(2));

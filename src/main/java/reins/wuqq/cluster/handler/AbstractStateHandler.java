@@ -13,6 +13,7 @@ import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
 import reins.wuqq.resource.FrameworkDetail;
+import reins.wuqq.resource.PersistedFrameworkDetail;
 import reins.wuqq.support.InstanceUtil;
 
 import javax.annotation.Nonnull;
@@ -21,7 +22,7 @@ import java.util.Optional;
 @Slf4j
 public abstract class AbstractStateHandler implements StateHandler {
     @Autowired
-    protected FrameworkDetail frameworkConfiguration;
+    protected PersistedFrameworkDetail frameworkConfiguration;
 
     @Autowired
     protected PersistedClusterDetail clusterDetail;
