@@ -16,8 +16,7 @@ import java.io.IOException;
 public class PersistedFrameworkDetail extends PersistedState<FrameworkDetail> {
     private static final String FRAMEWORK_CONFIGURATION_VAR = "frameworkConf";
 
-    @Autowired
-    private static ObjectMapper mapper;
+    private static ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
     public PersistedFrameworkDetail(final ZooKeeperState state) {

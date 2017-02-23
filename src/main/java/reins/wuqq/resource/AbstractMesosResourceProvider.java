@@ -7,6 +7,7 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import reins.wuqq.ResourceProvider;
 import reins.wuqq.ResourceStatusListener;
@@ -18,6 +19,7 @@ import java.util.Collections;
 @Slf4j(topic = "ResourceProvider")
 public abstract class AbstractMesosResourceProvider implements ResourceProvider, Scheduler {
     @Autowired
+    @Qualifier("cluster")
     protected ResourceStatusListener resourceStatusListener;
 
     @Autowired

@@ -16,8 +16,7 @@ import java.util.function.Supplier;
 public class PersistedSchedulerDetail extends PersistedState<SchedulerDetail> {
     private static final String SCHEDULER_TASKS_VAR = "schedulerTasks";
 
-    @Autowired
-    private static ObjectMapper mapper;
+    private static ObjectMapper mapper = new ObjectMapper();
 
     private static final Supplier<SchedulerDetail> DEFAULT_VALUE_GENERATOR = () -> new SchedulerDetail();
     private static final Function<SchedulerDetail, byte[]> DEFAULT_SERIALIZER = input -> {

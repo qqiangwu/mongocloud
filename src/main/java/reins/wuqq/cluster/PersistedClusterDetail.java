@@ -21,8 +21,7 @@ import java.util.function.Supplier;
 public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
     private static final String CLUSTER_DETAIL_VAR = "clusterDetail";
 
-    @Autowired
-    private static ObjectMapper mapper;
+    private static ObjectMapper mapper = new ObjectMapper();
 
     private static final Supplier<ClusterDetail> DEFAULT_VALUE_GENERATOR = () -> new ClusterDetail();
     private static final Function<ClusterDetail, byte[]> DEFAULT_SERIALIZER = input -> {

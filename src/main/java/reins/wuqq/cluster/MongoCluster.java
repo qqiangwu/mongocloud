@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import java.util.Map;
 
-@Component
+@Component(value = "cluster")
 public class MongoCluster implements Cluster, ResourceStatusListener {
     @Autowired
     private Map<ClusterState, StateHandler> handlerMap;
