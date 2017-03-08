@@ -27,7 +27,7 @@ import java.util.List;
  */
 @Component
 @ThreadSafe
-@Slf4j(topic = "ResourceProvider")
+@Slf4j(topic = "reins.ResourceProvider")
 public class MesosResourceProvider extends AbstractMesosResourceProvider {
     @Autowired
     private PersistedSchedulerDetail schedulerTasks;
@@ -138,10 +138,6 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .addArguments(instance.getArgs())
                 .build();
     }
-
-    private static final CommandInfo NULL_COMMAND = CommandInfo.newBuilder()
-            .setShell(false)
-            .build();
 
     private Resource getDiskRequirement(final Instance instance) {
         return Resource.newBuilder()

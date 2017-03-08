@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collections;
 
-@Slf4j(topic = "ResourceProvider")
+@Slf4j(topic = "reins.ResourceProvider")
 public abstract class AbstractMesosResourceProvider implements ResourceProvider, Scheduler {
     @Autowired
     @Qualifier("cluster")
@@ -32,12 +32,17 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
     public void registered(SchedulerDriver schedulerDriver, Protos.FrameworkID frameworkID, Protos.MasterInfo masterInfo) {
         log.info("Register(framework: {}, master: {})", frameworkID.getValue(), masterInfo.getId());
 
+        System.out.println("=====================");
+
         frameworkConfiguration.setFrameworkId(frameworkID);
+        resourceStatusListener.onPlatformPrepared();
     }
 
     @Override
     public void reregistered(SchedulerDriver schedulerDriver, Protos.MasterInfo masterInfo) {
         log.info("Reregistered(master: {})", masterInfo.getId());
+
+        System.out.println("=====================");
 
         schedulerDriver.reconcileTasks(Collections.emptySet());
     }
@@ -102,20 +107,23 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
 
     @Override
     public void error(SchedulerDriver schedulerDriver, String s) {
-        log.error("Error(msg: {})");
+        log.error("Error(msg: {})", s);
     }
 
     @Scheduled(fixedRate = 60 * 1000)
     public void sync() {
-        log.info("Sync");
+        // log.info("Sync");
 
-        schedulerDriver.reconcileTasks(Collections.emptySet());
+        // FIXME: ASSUME THERE IS NO ERROR
+        // schedulerDriver.reconcileTasks(Collections.emptySet());
     }
 
+    // FIXME: ASSUME THERE IS NO ERROR
     @Override
     public void sync(@Nonnull Protos.TaskID taskID) {
         val taskStatus = Protos.TaskStatus.newBuilder()
                 .setTaskId(taskID)
+                .setState(Protos.TaskState.TASK_RUNNING)
                 .build();
 
         schedulerDriver.reconcileTasks(Arrays.asList(taskStatus));

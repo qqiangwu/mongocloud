@@ -23,7 +23,13 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
 
     private static ObjectMapper mapper = new ObjectMapper();
 
-    private static final Supplier<ClusterDetail> DEFAULT_VALUE_GENERATOR = () -> new ClusterDetail();
+    private static final Supplier<ClusterDetail> DEFAULT_VALUE_GENERATOR = () -> {
+        final ClusterDetail detail = new ClusterDetail();
+
+        detail.setName("Mongo-M");
+
+        return detail;
+    };
     private static final Function<ClusterDetail, byte[]> DEFAULT_SERIALIZER = input -> {
         try {
             return mapper.writeValueAsBytes(input);

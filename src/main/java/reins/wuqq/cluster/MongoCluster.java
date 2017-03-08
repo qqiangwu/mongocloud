@@ -1,10 +1,12 @@
 package reins.wuqq.cluster;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reins.wuqq.Cluster;
+import reins.wuqq.ResourceProvider;
 import reins.wuqq.ResourceStatusListener;
 import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
@@ -14,7 +16,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import java.util.Map;
 
-@Component(value = "cluster")
+@Component("cluster")
+@Slf4j(topic = "reins.MongoCluster")
 public class MongoCluster implements Cluster, ResourceStatusListener {
     @Autowired
     private Map<ClusterState, StateHandler> handlerMap;
@@ -24,8 +27,10 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
 
     private StateHandler currentHandler;
 
-    @PostConstruct
-    public void setup() {
+    @Override
+    public synchronized void onPlatformPrepared() {
+        log.info("MongoCluster:prepared(state: {})", clusterDetail.get());
+
         currentHandler = handlerMap.get(clusterDetail.getState());
         currentHandler.enter();
     }

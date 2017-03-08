@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
 import org.apache.mesos.state.ZooKeeperState;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import reins.wuqq.model.Instance;
 import reins.wuqq.support.PersistedState;
 
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@Component
 public class PersistedSchedulerDetail extends PersistedState<SchedulerDetail> {
     private static final String SCHEDULER_TASKS_VAR = "schedulerTasks";
 

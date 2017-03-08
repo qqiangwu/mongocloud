@@ -49,6 +49,11 @@ public abstract class PersistedState<A> {
         return fetch.get();
     }
 
+    @SneakyThrows
+    public final void clear() {
+        state.expunge(var).get();
+    }
+
     public final A get() {
         if (parsedValue == null) {
             parsedValue = parseValue();

@@ -19,7 +19,7 @@ import reins.wuqq.support.InstanceUtil;
 import javax.annotation.Nonnull;
 import java.util.Optional;
 
-@Slf4j
+@Slf4j(topic = "reins.StateHandler")
 public abstract class AbstractStateHandler implements StateHandler {
     @Autowired
     protected PersistedFrameworkDetail frameworkConfiguration;
@@ -48,6 +48,11 @@ public abstract class AbstractStateHandler implements StateHandler {
     @Override
     public void leave() {
 
+    }
+
+    @Override
+    public final void onPlatformPrepared() {
+        throw new IllegalStateException("The underlying platform should be initialized before");
     }
 
     @Override
