@@ -32,8 +32,6 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
     public void registered(SchedulerDriver schedulerDriver, Protos.FrameworkID frameworkID, Protos.MasterInfo masterInfo) {
         log.info("Register(framework: {}, master: {})", frameworkID.getValue(), masterInfo.getId());
 
-        System.out.println("=====================");
-
         frameworkConfiguration.setFrameworkId(frameworkID);
         resourceStatusListener.onPlatformPrepared();
     }
@@ -41,8 +39,6 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
     @Override
     public void reregistered(SchedulerDriver schedulerDriver, Protos.MasterInfo masterInfo) {
         log.info("Reregistered(master: {})", masterInfo.getId());
-
-        System.out.println("=====================");
 
         schedulerDriver.reconcileTasks(Collections.emptySet());
     }

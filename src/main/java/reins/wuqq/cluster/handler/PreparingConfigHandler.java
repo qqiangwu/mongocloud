@@ -55,9 +55,9 @@ public class PreparingConfigHandler extends AbstractStateHandler {
     }
 
     private void launchConfigServer() {
-        log.info("PrepareConfig:launch");
-
         val instance = prepareConfigInstance();
+
+        log.info("PrepareConfig:launch(instance: {})", instance);
 
         resourceProvider.launch(instance);
         clusterDetail.addInstance(instance);
@@ -75,8 +75,10 @@ public class PreparingConfigHandler extends AbstractStateHandler {
         return instance;
     }
 
+    // TODO
     private void transitOutOfState() {
-        mongoCluster.transitTo(ClusterState.PREPARING_PROXY);
+        log.info("PrepareConfig:leave");
+        //mongoCluster.transitTo(ClusterState.PREPARING_PROXY);
     }
 
     @Override

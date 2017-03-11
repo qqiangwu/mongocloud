@@ -16,6 +16,7 @@ import reins.wuqq.support.MesosUtil;
 import reins.wuqq.support.ResourceDescriptor;
 
 import javax.annotation.Nonnull;
+import javax.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +32,11 @@ import java.util.List;
 public class MesosResourceProvider extends AbstractMesosResourceProvider {
     @Autowired
     private PersistedSchedulerDetail schedulerTasks;
+
+    @PostConstruct
+    public void setup() {
+        log.info("ResourceProvider:setup(cluster: {})", schedulerTasks.get());
+    }
 
     @Override
     public synchronized Instance launch(@Nonnull final Instance instance) {

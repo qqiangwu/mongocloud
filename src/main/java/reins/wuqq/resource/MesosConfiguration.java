@@ -3,6 +3,7 @@ package reins.wuqq.resource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.MesosSchedulerDriver;
+import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.FrameworkID;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Scheduler;
@@ -15,6 +16,7 @@ import org.springframework.core.env.Environment;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Configuration
 @Slf4j
