@@ -73,7 +73,8 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
                 break;
 
             case TASK_ERROR:
-                throw new RuntimeException(String.format("Bad task desc: %s", taskStatus.getTaskId().getValue()));
+                log.error("statusUpdate",
+                        new RuntimeException(String.format("Bad task desc: %s", taskStatus.getTaskId().getValue())));
         }
     }
 

@@ -52,6 +52,8 @@ public class MongoMApplication {
 				context.getBeansOfType(PersistedState.class).values().forEach(state -> state.clear());
 				break;
 		}
+
+		SpringApplication.exit(context, ()-> 0);
 	}
 
 	@Bean

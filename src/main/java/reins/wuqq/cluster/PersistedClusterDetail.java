@@ -120,4 +120,22 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
     public boolean needMoreShard() {
         return get().getShardsNeeded() > 0;
     }
+
+    public void removeInstance(@Nonnull final Instance instance) {
+        switch (instance.getType()) {
+            case CONFIG_SERVER:
+                get().setConfigServer(null);
+                break;
+
+            case PROXY_SERVER:
+                get().setProxyServer(null);
+                break;
+
+            case SHARD:
+                get().getShards().remove(instance.getId());
+                break;
+        }
+
+        setValue(get());
+    }
 }

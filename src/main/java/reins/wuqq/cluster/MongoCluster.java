@@ -36,15 +36,13 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
     }
 
     public synchronized void transitTo(@Nonnull final ClusterState state) {
-        if (state != currentHandler.getState()) {
-            val oldHandler = currentHandler;
-            val newHandler = handlerMap.get(state);
+        val oldHandler = currentHandler;
+        val newHandler = handlerMap.get(state);
 
-            oldHandler.leave();
-            newHandler.enter();
+        oldHandler.leave();
+        newHandler.enter();
 
-            currentHandler = newHandler;
-        }
+        currentHandler = newHandler;
     }
 
     @Override

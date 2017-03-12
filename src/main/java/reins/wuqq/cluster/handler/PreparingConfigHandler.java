@@ -71,6 +71,9 @@ public class PreparingConfigHandler extends AbstractStateHandler {
         instance.setType(InstanceType.CONFIG_SERVER);
         instance.setImage(dockerImageForConfigServer);
         instance.setArgs(dockerArgs);
+        instance.setCpus(1.0);
+        instance.setMemory(1024);
+        instance.setDisk(10 * 1024);
 
         return instance;
     }

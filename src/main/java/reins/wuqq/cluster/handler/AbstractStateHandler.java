@@ -10,6 +10,7 @@ import reins.wuqq.cluster.MongoCluster;
 import reins.wuqq.cluster.PersistedClusterDetail;
 import reins.wuqq.cluster.StateHandler;
 import reins.wuqq.model.ClusterDetail;
+import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
 import reins.wuqq.resource.FrameworkDetail;
@@ -57,13 +58,14 @@ public abstract class AbstractStateHandler implements StateHandler {
 
     @Override
     public void onNodeLaunched(@Nonnull final Instance instance) {
+        log.info("StateHandler:onNodeLaunched(instance: {})", instance.getId());
+
         instance.setState(InstanceState.LAUNCHING);
         clusterDetail.updateInstance(instance);
     }
 
     @Override
     public void onNodeStarted(@Nonnull final TaskStatus status) {
-
     }
 
     @Override
@@ -75,6 +77,9 @@ public abstract class AbstractStateHandler implements StateHandler {
 
         instanceOpt.ifPresent(instance -> {
             log.error("< cluster.onNodeLost(instance: {})", instance.getId());
+
+            clusterDetail.removeInstance(instance);
+            mongoCluster.transitTo(ClusterState.PREPARING_CONFIG);
         });
     }
 

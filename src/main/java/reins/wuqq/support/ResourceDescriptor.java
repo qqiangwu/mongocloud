@@ -1,6 +1,7 @@
 package reins.wuqq.support;
 
 import lombok.Getter;
+import lombok.ToString;
 import lombok.val;
 import org.apache.mesos.Protos;
 
@@ -12,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Getter
+@ToString
 public final class ResourceDescriptor {
     private final double cpus;
     private final long memory;
@@ -19,21 +21,32 @@ public final class ResourceDescriptor {
     private final List<Integer> ports = new ArrayList<>();
 
     public ResourceDescriptor(@Nonnull final List<Protos.Resource> resources) {
-        val resouceMap = resources
+        val resourceMap = resources
                 .stream()
                 .collect(Collectors.toMap(x -> x.getName(), Function.identity()));
 
-        cpus = getOrDefault(resouceMap, "cpus", 0.0D, Double.class);
-        memory = getOrDefault(resouceMap, "mem", 0L, Long.class);
-        disk = getOrDefault(resouceMap, "disk", 0L, Long.class);
+        cpus = getDoubleOrDefault(resourceMap, "cpus", 0.0D);
+        memory = getLongOrDefault(resourceMap, "mem", 0L);
+        disk = getLongOrDefault(resourceMap, "disk", 0L);
+
+        for (val r: resources) {
+            if (r.getName().equals("ports")) {
+                ports.add((int) r.getRanges().getRange(0).getBegin());
+            }
+        }
     }
 
-    private <T> T getOrDefault(@Nonnull final Map<String, Protos.Resource> resources,
-                               @Nonnull final String key,
-                               @Nonnull final T defaultValue,
-                               @Nonnull final Class<T> clazz) {
+    private double getDoubleOrDefault(@Nonnull final Map<String, Protos.Resource> resources,
+                                      @Nonnull final String key,
+                                      @Nonnull double defaultValue) {
         val r = resources.get(key);
+        return r == null? defaultValue: r.getScalar().getValue();
+    }
 
-        return (r == null) ? defaultValue :  clazz.cast(r.getScalar());
+    private long getLongOrDefault(@Nonnull final Map<String, Protos.Resource> resources,
+                                      @Nonnull final String key,
+                                      @Nonnull long defaultValue) {
+        val r = resources.get(key);
+        return r == null? defaultValue: (long) r.getScalar().getValue();
     }
 }

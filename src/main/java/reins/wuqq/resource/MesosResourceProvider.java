@@ -2,6 +2,7 @@ package reins.wuqq.resource;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.*;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.Network;
@@ -35,7 +36,7 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
     @PostConstruct
     public void setup() {
-        log.info("ResourceProvider:setup(cluster: {})", schedulerTasks.get());
+        log.info("setup(cluster: {})", schedulerTasks.get());
     }
 
     @Override
@@ -98,10 +99,13 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private void launchOn(final Instance instance, final Offer offer) {
-        log.debug("Launch(instance: {}, node: {})", instance.getId(), offer.getSlaveId().getValue());
+        log.debug("> launch(id: {}, instance: {}, node: {})",
+                instance.getId(), instance, offer.getSlaveId().getValue());
 
 
         val taskInfo = buildTask(instance, offer);
+
+        log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
 
         schedulerDriver.launchTasks(Arrays.asList(offer.getId()), Arrays.asList(taskInfo));
         resourceStatusListener.onNodeLaunched(instance);
@@ -170,10 +174,14 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private Resource getPortMapping(final DockerInfo.PortMapping mapping) {
+        val port = mapping.getHostPort();
+        val range = Value.Ranges.newBuilder()
+                .addRange(Value.Range.newBuilder().setBegin(port).setEnd(port));
+
         return Resource.newBuilder()
                 .setName("ports")
-                .setType(Type.SCALAR)
-                .setScalar(Scalar.newBuilder().setValue(mapping.getHostPort()))
+                .setType(Type.RANGES)
+                .setRanges(range)
                 .build();
     }
 
@@ -185,7 +193,9 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .addPortMappings(portMapping)
                 .build();
 
-        return ContainerInfo.newBuilder().setDocker(docker);
+        return ContainerInfo.newBuilder()
+                .setType(ContainerInfo.Type.DOCKER)
+                .setDocker(docker);
     }
 
     private boolean hasSufficientResource(final List<Resource> offeredResources, final Instance instance) {
@@ -214,6 +224,26 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
     @Override
     protected synchronized void onNodeLost(final @Nonnull TaskStatus status) {
-        log.info("OnNodeLost(taskId: {})", status.getTaskId().getValue());
+        log.info("OnNodeLost(taskId: {}, reason: {}, container: {})",
+                status.getTaskId().getValue(),
+                status.getReason(),
+                status.getContainerStatus());
+
+        if (status.getState() == TaskState.TASK_FAILED) {
+            schedulerDriver.killTask(status.getTaskId());
+        }
+    }
+
+    @Override
+    public void sync(@Nonnull Protos.TaskID taskID) {
+        val isPending = schedulerTasks.getPendingTasks().stream()
+                .filter(i -> i.getId().equals(taskID.getValue()))
+                .findFirst();
+
+        if (isPending.isPresent()) {
+            log.info("sync(pending: {})", taskID.getValue());
+        } else {
+            super.sync(taskID);
+        }
     }
 }
