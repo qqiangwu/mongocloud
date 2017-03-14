@@ -6,14 +6,12 @@ import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reins.wuqq.Cluster;
-import reins.wuqq.ResourceProvider;
 import reins.wuqq.ResourceStatusListener;
 import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
 
 import javax.annotation.Nonnull;
-import javax.annotation.PostConstruct;
 import java.util.Map;
 
 @Component("cluster")
@@ -61,17 +59,17 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
     }
 
     @Override
-    public synchronized void onNodeLaunched(@Nonnull Instance instance) {
-        currentHandler.onNodeLaunched(instance);
+    public synchronized void onInstanceLaunched(@Nonnull Instance instance) {
+        currentHandler.onInstanceLaunched(instance);
     }
 
     @Override
-    public synchronized void onNodeStarted(@Nonnull final TaskStatus status) {
-        currentHandler.onNodeStarted(status);
+    public synchronized void onInstanceStarted(@Nonnull final TaskStatus status) {
+        currentHandler.onInstanceStarted(status);
     }
 
     @Override
-    public synchronized void onNodeLost(@Nonnull final TaskStatus status) {
-        currentHandler.onNodeLost(status);
+    public synchronized void onInstanceLost(@Nonnull final TaskStatus status) {
+        currentHandler.onInstanceLost(status);
     }
 }

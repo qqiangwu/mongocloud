@@ -21,6 +21,6 @@ public class ClusterController {
 
     @RequestMapping(path = "/cluster", method = RequestMethod.GET)
     public ClusterDetail getClusterDetail() {
-        return null;
+        return cluster.getDetail();
     }
 }

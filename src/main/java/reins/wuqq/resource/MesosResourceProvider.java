@@ -6,12 +6,14 @@ import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.*;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.Network;
+import org.apache.mesos.Protos.Value;
 import org.apache.mesos.Protos.Value.Scalar;
 import org.apache.mesos.Protos.Value.Type;
 import org.apache.mesos.SchedulerDriver;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.*;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.Instance;
+import reins.wuqq.model.InstanceType;
 import reins.wuqq.support.ClusterUtil;
 import reins.wuqq.support.MesosUtil;
 import reins.wuqq.support.ResourceDescriptor;
@@ -21,6 +23,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -53,22 +56,23 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     @Override
     public synchronized void resourceOffers(@Nonnull final SchedulerDriver driver, @Nonnull final List<Offer> offers) {
         val pendingTasks = schedulerTasks.getPendingTasks();
+        boolean hasLaunched = false;
 
         for (val offer: offers) {
             val launched = tryLaunch(offer, pendingTasks);
 
             if (!launched) {
                 driver.declineOffer(offer.getId());
+            } else {
+                hasLaunched = launched;
             }
         }
 
-        if (hasLaunched(pendingTasks)) {
+        if (hasLaunched) {
             schedulerTasks.setPendingTasks(pendingTasks);
-        }
-    }
 
-    private boolean hasLaunched(final List<Instance> pendingTasks) {
-        return (pendingTasks.size() != schedulerTasks.getPendingTasks().size());
+            log.trace("resourceOffers(pending: {})", schedulerTasks.getPendingTasks().size());
+        }
     }
 
     private boolean tryLaunch(final Offer offer, final List<Instance> pendingTasks) {
@@ -108,7 +112,7 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
         log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
 
         schedulerDriver.launchTasks(Arrays.asList(offer.getId()), Arrays.asList(taskInfo));
-        resourceStatusListener.onNodeLaunched(instance);
+        resourceStatusListener.onInstanceLaunched(instance);
     }
 
     private TaskInfo buildTask(final Instance instance, final Offer offer) {
@@ -130,7 +134,7 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private DockerInfo.PortMapping preparePortMapping(final Instance instance, final Offer offer) {
-        val containerPort = 27017;
+        val containerPort = instance.getType().equals(InstanceType.CONFIG_SERVER)? 27019: 27017;
         val hostPort = new ResourceDescriptor(offer.getResourcesList()).getPorts().get(0);
 
         instance.setPort(hostPort);
@@ -143,9 +147,11 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private CommandInfo buildCommand(final Instance instance) {
+        val args = instance.getArgs().split(" ");
+
         return CommandInfo.newBuilder()
                 .setShell(false)
-                .addArguments(instance.getArgs())
+                .addAllArguments(Arrays.asList(args))
                 .build();
     }
 
@@ -185,6 +191,9 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .build();
     }
 
+    @org.springframework.beans.factory.annotation.Value("${docker.volume}")
+    private String dockerVolume;
+
     private ContainerInfo.Builder buildContainer(final Instance instance, final DockerInfo.PortMapping portMapping) {
         val docker = DockerInfo.newBuilder()
                 .setImage(instance.getImage())
@@ -193,8 +202,14 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .addPortMappings(portMapping)
                 .build();
 
+        val volume = Volume.newBuilder()
+                .setContainerPath(dockerVolume)
+                .setMode(Volume.Mode.RW)
+                .build();
+
         return ContainerInfo.newBuilder()
                 .setType(ContainerInfo.Type.DOCKER)
+                //.addVolumes(volume)
                 .setDocker(docker);
     }
 
@@ -219,15 +234,21 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
     @Override
     protected synchronized void onNodeStarted(final @Nonnull TaskStatus status) {
-        log.info("OnNodeStarted(taskId: {})", status.getTaskId().getValue());
+        log.info("OnNodeStarted(taskId: {}, pending: {})", status.getTaskId().getValue(), schedulerTasks.getPendingTasks().size());
+
+        val pendingTasks = schedulerTasks.getPendingTasks();
+        val rest = pendingTasks.stream()
+                .filter(instance -> !instance.getId().equals(status.getTaskId().getValue()))
+                .collect(Collectors.toList());
+
+        if (pendingTasks.size() != rest.size()) {
+            schedulerTasks.setPendingTasks(rest);
+        }
     }
 
     @Override
     protected synchronized void onNodeLost(final @Nonnull TaskStatus status) {
-        log.info("OnNodeLost(taskId: {}, reason: {}, container: {})",
-                status.getTaskId().getValue(),
-                status.getReason(),
-                status.getContainerStatus());
+        log.info("OnNodeLost(taskId: {}, reason: {})", status.getTaskId().getValue(), status.getReason());
 
         if (status.getState() == TaskState.TASK_FAILED) {
             schedulerDriver.killTask(status.getTaskId());

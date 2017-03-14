@@ -5,6 +5,7 @@ import lombok.val;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import reins.wuqq.ResourceProvider;
 import reins.wuqq.cluster.MongoCluster;
 import reins.wuqq.cluster.PersistedClusterDetail;
@@ -34,6 +35,9 @@ public abstract class AbstractStateHandler implements StateHandler {
     @Autowired
     protected MongoCluster mongoCluster;
 
+    @Value("${scheduler.conf.retry}")
+    protected int retryCount;
+
     @Override
     public ClusterDetail getDetail() {
         return clusterDetail.get();
@@ -51,32 +55,49 @@ public abstract class AbstractStateHandler implements StateHandler {
 
     }
 
+    // FIXME
+    protected void checkRetries() {
+        if (++retryCount > 5) {
+            log.error("RetryFailed(state: {})", getState());
+            throw new RuntimeException("Retried Too Much");
+        }
+    }
+
     @Override
     public final void onPlatformPrepared() {
         throw new IllegalStateException("The underlying platform should be initialized before");
     }
 
     @Override
-    public void onNodeLaunched(@Nonnull final Instance instance) {
-        log.info("StateHandler:onNodeLaunched(instance: {})", instance.getId());
+    public void onInstanceLaunched(@Nonnull final Instance instance) {
+        log.info("StateHandler:onInstanceLaunched(instance: {})", instance.getId());
 
         instance.setState(InstanceState.LAUNCHING);
         clusterDetail.updateInstance(instance);
     }
 
     @Override
-    public void onNodeStarted(@Nonnull final TaskStatus status) {
+    public void onInstanceStarted(@Nonnull final TaskStatus status) {
+        log.info("> onInstanceStarted(id: {})", status.getTaskId().getValue());
+
+        val taskID = status.getTaskId();
+        val instanceOpt = getInstance(taskID);
+
+        if (!instanceOpt.isPresent()) {
+            log.info("< onInstanceStarted(id: {}): remove legacy instance", status.getTaskId().getValue());
+            resourceProvider.kill(status.getTaskId());
+        }
     }
 
     @Override
-    public void onNodeLost(@Nonnull final TaskStatus status) {
-        log.error("> cluster.onNodeLost(id: {})", status.getTaskId().getValue());
+    public void onInstanceLost(@Nonnull final TaskStatus status) {
+        log.error("> cluster.onInstanceLost(id: {})", status.getTaskId().getValue());
 
         val taskID = status.getTaskId();
         val instanceOpt = getInstance(taskID);
 
         instanceOpt.ifPresent(instance -> {
-            log.error("< cluster.onNodeLost(instance: {})", instance.getId());
+            log.error("< cluster.onInstanceLost(instance: {})", instance.getId());
 
             clusterDetail.removeInstance(instance);
             mongoCluster.transitTo(ClusterState.PREPARING_CONFIG);

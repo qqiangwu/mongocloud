@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
 @Configuration
 @Slf4j
 public class MesosConfiguration {
-    private static final String FRAMEWORK_USER = "reins";
+    private static final String FRAMEWORK_USER = "root";
     private static final String FRAMEWORK_NAME = "MONGO-M";
 
     @Bean

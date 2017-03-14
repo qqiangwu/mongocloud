@@ -68,7 +68,7 @@ public class PreparingShardHandler extends AbstractStateHandler {
     }
 
     @Override
-    public void onNodeStarted(@Nonnull final TaskStatus status) {
+    public void onInstanceStarted(@Nonnull final TaskStatus status) {
         val taskID = status.getTaskId();
 
         getInstance(taskID)

@@ -50,4 +50,12 @@ public class PersistedFrameworkDetail extends PersistedState<FrameworkDetail> {
 
         setValue(v);
     }
+
+    public void clearFrameworkId() {
+        val v = get();
+
+        v.setFrameworkId(null);
+
+        setValue(v);
+    }
 }

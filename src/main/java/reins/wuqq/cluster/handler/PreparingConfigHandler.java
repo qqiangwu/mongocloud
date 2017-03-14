@@ -5,6 +5,7 @@ import lombok.val;
 import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
@@ -35,6 +36,7 @@ public class PreparingConfigHandler extends AbstractStateHandler {
 
         log.info("PrepareConfig:enter");
 
+        checkRetries();
         ensureConfigServerIsRunning();
     }
 
@@ -82,10 +84,13 @@ public class PreparingConfigHandler extends AbstractStateHandler {
     private void transitOutOfState() {
         log.info("PrepareConfig:leave");
         //mongoCluster.transitTo(ClusterState.PREPARING_PROXY);
+        retryCount = 0;
     }
 
     @Override
-    public void onNodeStarted(@Nonnull final TaskStatus status) {
+    public void onInstanceStarted(@Nonnull final TaskStatus status) {
+        super.onInstanceStarted(status);
+
         val taskID = status.getTaskId();
 
         clusterDetail.getConfigServer()

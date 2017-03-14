@@ -61,20 +61,19 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
 
             case TASK_RUNNING:
                 onNodeStarted(taskStatus);
-                resourceStatusListener.onNodeStarted(taskStatus);
+                resourceStatusListener.onInstanceStarted(taskStatus);
                 break;
 
             case TASK_FINISHED:
-            case TASK_FAILED:
-            case TASK_KILLED:
             case TASK_LOST:
+            case TASK_KILLED:
+            case TASK_FAILED:
                 onNodeLost(taskStatus);
-                resourceStatusListener.onNodeLost(taskStatus);
+                resourceStatusListener.onInstanceLost(taskStatus);
                 break;
 
             case TASK_ERROR:
-                log.error("statusUpdate",
-                        new RuntimeException(String.format("Bad task desc: %s", taskStatus.getTaskId().getValue())));
+                log.error("statusUpdate:error(id: {}, reason: {}", taskStatus.getTaskId().getValue(), taskStatus.getReason());
         }
     }
 
@@ -105,7 +104,15 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
     @Override
     public void error(SchedulerDriver schedulerDriver, String s) {
         log.error("Error(msg: {})", s);
+
+        switch (s){
+            case FRAMEWORK_REMOVED:
+                frameworkConfiguration.clearFrameworkId();
+                break;
+        }
     }
+
+    private static final String FRAMEWORK_REMOVED = "Framework has been removed";
 
     @Scheduled(fixedRate = 60 * 1000)
     public void sync() {

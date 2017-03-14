@@ -3,6 +3,7 @@ package reins.wuqq.model;
 import lombok.Data;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -16,5 +17,5 @@ public class ClusterDetail {
     Instance proxyServer;
 
     int shardsNeeded;
-    Map<String, Instance> shards;
+    Map<String, Instance> shards = new HashMap<>();
 }
