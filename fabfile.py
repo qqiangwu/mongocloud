@@ -5,10 +5,10 @@ def build():
 
 def send():
     build()
-    local('scp target/mm.jar mooc2:~')
+    local('scp target/mm.jar reins:~')
 
 def run():
-    local('ssh mooc2 "LIBPROCESS_IP=192.168.1.20 java -jar mm.jar"')
+    local('ssh mooc2 "LIBPROCESS_IP=192.168.1.64 java -jar mm.jar"')
 
 def all():
     send()
