@@ -1,0 +1,71 @@
+- hosts: mproxy mconfig mshard
+  tasks:
+    - name: Install Mongo Server
+      apt:
+        pkg: mongodb-org
+        state: present
+
+    - name: Use public IP
+      lineinfile:
+        dest: /etc/mongod.conf
+        regexp: '^  bindIp'
+        line: '  bindIp:  0.0.0.0'
+
+- hosts: mconfig
+  tasks:
+    - name: Config Mongo Proxy Role
+      blockinfile:
+        dest: /etc/mongod.conf
+        block: |
+          sharding:
+            clusterRole: configsvr
+      notify:
+        - Restart Config
+
+  handlers:
+    - name: Restart Config
+      service:
+        name: mongod
+        state: restarted
+
+- hosts: mshard
+  tasks:
+    - name: Config Mongo Shard Role
+      blockinfile:
+        dest: /etc/mongod.conf
+        block: |
+          sharding:
+            clusterRole: shardsvr
+      notify:
+        - Restart Shard
+
+  handlers:
+    - name: Restart Shard
+      service:
+        name: mongod
+        state: restarted
+
+- hosts: mproxy
+  tasks:
+    - name: Config Mongos
+      blockinfile:
+        dest: /etc/mongod.conf
+        block: |
+          sharding:
+            configDB: {{ groups['mconfig'] | join('') }}:27017
+      notify:
+        - Restart Proxy
+
+    - name: Enable Mongos
+      lineinfile:
+        dest: /etc/default/mongod
+        line: 'DAEMON=/usr/bin/mongos'
+        create: yes
+      notify:
+        - Restart Proxy
+
+  handlers:
+    - name: Restart Proxy
+      service:
+        name: mongod
+        state: restarted
