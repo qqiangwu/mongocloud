@@ -1,0 +1,57 @@
+- hosts: monitor
+  tasks:
+    - name: Create Dir
+      file:
+        path: /wuqq/monitor
+        state: directory
+    - name: Setup service
+      blockinfile:
+        dest: /etc/rc.local
+        insertbefore: '^exit 0'
+        block: |
+          kill $(ps aux | grep '/wuqq/monitor/prometheus-1.5.2.linux-amd64/prometheus' | awk '{print $2}') || true
+          nohup /wuqq/monitor/prometheus-1.5.2.linux-amd64/prometheus -config.file=/wuqq/monitor/prometheus.yml > /var/log/monitor.log 2>&1 &
+      notify:
+        - Restart Monitor
+    - name: Download binary
+      unarchive:
+        src: ~/mesos-cluster-setup/prometheus-1.5.2.linux-amd64.tar.gz
+        dest: /wuqq/monitor/
+      notify:
+        - Restart Monitor
+    - name: Update config
+      copy:
+        src: ~/mesos-cluster-setup/prometheus.yml
+        dest: /wuqq/monitor/prometheus.yml
+      notify:
+        - Restart Monitor
+
+  handlers:
+    - name: Restart Monitor
+      shell: /etc/init.d/rc.local start
+
+- hosts: mshard
+  tasks:
+    - name: Create Dir
+      file:
+        path: /wuqq/monitor
+        state: directory
+    - name: Setup service
+      blockinfile:
+        dest: /etc/rc.local
+        insertbefore: '^exit 0'
+        block: |
+          kill $(ps aux | grep '/wuqq/monitor/node_exporter-0.14.0.linux-amd64/node_exporter' | awk '{print $2}') || true
+          nohup /wuqq/monitor/node_exporter-0.14.0.linux-amd64/node_exporter -web.listen-address :7000 > /var/log/monitor.log 2>&1 &
+      notify:
+        - Restart Monitor
+    - name: Download binary
+      unarchive:
+        src: ~/mesos-cluster-setup/node_exporter-0.14.0.linux-amd64.tar.gz
+        dest: /wuqq/monitor/
+      notify:
+        - Restart Monitor
+
+  handlers:
+    - name: Restart Monitor
+      shell: /etc/init.d/rc.local start
