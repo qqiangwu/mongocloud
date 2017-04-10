@@ -4,16 +4,12 @@ global:
     monitor: 'codelab-monitor'
 
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: 'prometheus'
-
-    # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 5s
-
-    static_configs:
-      - targets: ['localhost:9090']
-
   - job_name: 'shard-servers'
     scrape_interval: 5s
     static_configs:
       - targets: ['192.168.1.113:7000','192.168.1.114:7000','192.168.1.115:7000','192.168.1.117:7000']
+
+  - job_name: 'shard-mongo'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['192.168.1.113:7001','192.168.1.114:7001','192.168.1.115:7001','192.168.1.117:7001']

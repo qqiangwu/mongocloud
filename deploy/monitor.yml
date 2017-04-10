@@ -42,13 +42,22 @@
         insertbefore: '^exit 0'
         block: |
           kill $(ps aux | grep '/wuqq/monitor/node_exporter-0.14.0.linux-amd64/node_exporter' | awk '{print $2}') || true
-          nohup /wuqq/monitor/node_exporter-0.14.0.linux-amd64/node_exporter -web.listen-address :7000 > /var/log/monitor.log 2>&1 &
+          nohup /wuqq/monitor/node_exporter-0.14.0.linux-amd64/node_exporter -web.listen-address :7000 > /var/log/node-exporter.log 2>&1 &
+          kill $(ps aux | grep '/wuqq/monitor/mongodb_exporter' | awk '{print $2}') || true
+          nohup /wuqq/monitor/mongodb_exporter -web.listen-address :7001 > /var/log/mongo-exporter.log 2>&1 &
       notify:
         - Restart Monitor
-    - name: Download binary
+    - name: Download node exporter binary
       unarchive:
         src: ~/mesos-cluster-setup/node_exporter-0.14.0.linux-amd64.tar.gz
         dest: /wuqq/monitor/
+      notify:
+        - Restart Monitor
+    - name: Download mongo exporter binary
+      copy:
+        src: ~/mesos-cluster-setup/mongodb_exporter-linux-amd64
+        dest: /wuqq/monitor/mongodb_exporter
+        mode: u+rwx
       notify:
         - Restart Monitor
 
