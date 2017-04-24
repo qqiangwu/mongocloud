@@ -80,11 +80,11 @@ public class PreparingConfigHandler extends AbstractStateHandler {
         return instance;
     }
 
-    // TODO
     private void transitOutOfState() {
         log.info("PrepareConfig:leave");
-        //mongoCluster.transitTo(ClusterState.PREPARING_PROXY);
+
         retryCount = 0;
+        mongoCluster.transitTo(ClusterState.PREPARING_PROXY);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
 import org.apache.mesos.state.ZooKeeperState;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
@@ -27,6 +28,7 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
         final ClusterDetail detail = new ClusterDetail();
 
         detail.setName("Mongo-M");
+        detail.setShardsNeeded(3);
 
         return detail;
     };

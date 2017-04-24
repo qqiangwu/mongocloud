@@ -1,5 +1,6 @@
 package reins.wuqq.cluster.handler;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.UUID;
 
 @Component
+@Slf4j(topic = "reins.PrepareProxy")
 public class PreparingProxyHandler extends AbstractStateHandler {
     @Value("${docker.proxy.image}")
     private String dockerImageForProxyServer;
@@ -30,6 +32,8 @@ public class PreparingProxyHandler extends AbstractStateHandler {
     @Override
     public void enter() {
         super.enter();
+
+        log.info("PrepareProxy:enter");
 
         ensureProxyServerIsRunning();
     }
@@ -53,6 +57,8 @@ public class PreparingProxyHandler extends AbstractStateHandler {
     private void launchProxyServer() {
         val proxyInstance = prepareProxyInstance();
 
+        log.info("PrepareProxy:launch(instance: {})", proxyInstance);
+
         resourceProvider.launch(proxyInstance);
         clusterDetail.addInstance(proxyInstance);
     }
@@ -65,13 +71,17 @@ public class PreparingProxyHandler extends AbstractStateHandler {
         proxyInstance.setId(UUID.randomUUID().toString());
         proxyInstance.setType(InstanceType.PROXY_SERVER);
         proxyInstance.setImage(dockerImageForProxyServer);
-        proxyInstance.setArgs(dockerArgs);
-        proxyInstance.getEnv().put("CONFIG_SERVER", configServerAddr);
+        proxyInstance.setCpus(1.0);
+        proxyInstance.setMemory(1024);
+        proxyInstance.setDisk(10 * 1024);
+        proxyInstance.setArgs(dockerArgs.replace("$CONFIG_SERVER", configServerAddr));
 
         return proxyInstance;
     }
 
     private void transitOutOfState() {
+        log.info("PrepareProxy:leave");
+
         mongoCluster.transitTo(ClusterState.PREPARING_SHARD);
     }
 
@@ -85,6 +95,8 @@ public class PreparingProxyHandler extends AbstractStateHandler {
 
     @Override
     public void onInstanceStarted(@Nonnull final TaskStatus status) {
+        super.onInstanceStarted(status);
+
         val taskID = status.getTaskId();
 
         clusterDetail.getProxyServer()

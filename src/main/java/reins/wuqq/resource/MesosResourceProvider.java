@@ -6,14 +6,12 @@ import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.*;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ContainerInfo.DockerInfo.Network;
-import org.apache.mesos.Protos.Value;
 import org.apache.mesos.Protos.Value.Scalar;
 import org.apache.mesos.Protos.Value.Type;
 import org.apache.mesos.SchedulerDriver;
-import org.springframework.beans.factory.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.Instance;
-import reins.wuqq.model.InstanceType;
 import reins.wuqq.support.ClusterUtil;
 import reins.wuqq.support.MesosUtil;
 import reins.wuqq.support.ResourceDescriptor;
@@ -109,9 +107,12 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
         val taskInfo = buildTask(instance, offer);
 
-        log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
+        // log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
 
         schedulerDriver.launchTasks(Arrays.asList(offer.getId()), Arrays.asList(taskInfo));
+
+        instance.setHostIP(offer.getHostname());
+
         resourceStatusListener.onInstanceLaunched(instance);
     }
 
@@ -134,7 +135,7 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
     }
 
     private DockerInfo.PortMapping preparePortMapping(final Instance instance, final Offer offer) {
-        val containerPort = instance.getType().equals(InstanceType.CONFIG_SERVER)? 27019: 27017;
+        val containerPort = getContainerPort(instance);
         val hostPort = new ResourceDescriptor(offer.getResourcesList()).getPorts().get(0);
 
         instance.setPort(hostPort);
@@ -144,6 +145,16 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
                 .setHostPort(hostPort)
                 .setProtocol("tcp")
                 .build();
+    }
+
+    private int getContainerPort(final Instance instance) {
+        switch (instance.getType()) {
+            case CONFIG_SERVER: return 27019;
+            case PROXY_SERVER: return 27017;
+            case SHARD: return 27018;
+        }
+
+        throw new IllegalArgumentException("Bad instance type");
     }
 
     private CommandInfo buildCommand(final Instance instance) {

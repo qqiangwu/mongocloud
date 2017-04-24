@@ -116,10 +116,9 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
 
     @Scheduled(fixedRate = 60 * 1000)
     public void sync() {
-        // log.info("Sync");
+        log.info("Sync(scope: all)");
 
-        // FIXME: ASSUME THERE IS NO ERROR
-        // schedulerDriver.reconcileTasks(Collections.emptySet());
+        schedulerDriver.reconcileTasks(Collections.emptySet());
     }
 
     // FIXME: ASSUME THERE IS NO ERROR

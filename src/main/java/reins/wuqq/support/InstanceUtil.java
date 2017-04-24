@@ -31,4 +31,8 @@ public abstract class InstanceUtil {
     public static final TaskID toTaskID(@Nonnull final Instance instance) {
         return TaskID.newBuilder().setValue(instance.getId()).build();
     }
+
+    public static final String toReadable(@Nonnull final Instance instance) {
+        return String.format("%s-%s:%s", instance.getName(), instance.getHostIP(), instance.getPort());
+    }
 }

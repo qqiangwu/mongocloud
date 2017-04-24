@@ -8,7 +8,7 @@ def send():
     local('scp target/mm.jar reins:~')
 
 def run():
-    local('ssh mooc2 "LIBPROCESS_IP=192.168.1.64 java -jar mm.jar"')
+    local('ssh reins "LIBPROCESS_IP=192.168.1.64 java -jar mm.jar"')
 
 def all():
     send()
