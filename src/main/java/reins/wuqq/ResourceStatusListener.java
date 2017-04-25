@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
  */
 public interface ResourceStatusListener {
     void onPlatformPrepared();
+    void onClusterDestroyed();
     void onInstanceLaunched(@Nonnull Instance instance);
     void onInstanceStarted(@Nonnull TaskStatus status);
     void onInstanceLost(@Nonnull TaskStatus status);

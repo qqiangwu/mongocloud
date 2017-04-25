@@ -8,6 +8,5 @@ public enum ClusterState {
     PREPARING_PROXY,
     PREPARING_SHARD,
     RUNNING,
-    SCALE_OUT,
-    SCALE_IN
+    RECYCLE
 }

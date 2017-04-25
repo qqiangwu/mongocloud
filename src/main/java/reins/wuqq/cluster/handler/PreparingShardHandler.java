@@ -6,18 +6,18 @@ import org.apache.mesos.Protos.TaskStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reins.wuqq.cluster.MongoUtil;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
 import reins.wuqq.model.InstanceType;
 import reins.wuqq.support.InstanceUtil;
-import reins.wuqq.cluster.MongoUtil;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
 
 @Component
-@Slf4j(topic = "reins.PrepareShard")
+@Slf4j(topic = "cluster.PrepareShard")
 public class PreparingShardHandler extends AbstractStateHandler {
     @Value("${docker.shard.image}")
     private String dockerImageForShardServer;

@@ -14,14 +14,13 @@ import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
-import reins.wuqq.resource.FrameworkDetail;
 import reins.wuqq.resource.PersistedFrameworkDetail;
 import reins.wuqq.support.InstanceUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
 
-@Slf4j(topic = "reins.StateHandler")
+@Slf4j(topic = "cluster.StateHandler")
 public abstract class AbstractStateHandler implements StateHandler {
     @Autowired
     protected PersistedFrameworkDetail frameworkConfiguration;
@@ -55,7 +54,6 @@ public abstract class AbstractStateHandler implements StateHandler {
 
     }
 
-    // FIXME
     protected void checkRetries() {
         if (++retryCount > 5) {
             log.error("RetryFailed(state: {})", getState());
@@ -66,6 +64,11 @@ public abstract class AbstractStateHandler implements StateHandler {
     @Override
     public final void onPlatformPrepared() {
         throw new IllegalStateException("The underlying platform should be initialized before");
+    }
+
+    @Override
+    public final void onClusterDestroyed() {
+
     }
 
     @Override
@@ -105,12 +108,12 @@ public abstract class AbstractStateHandler implements StateHandler {
     }
 
     @Override
-    public void scaleOutTo(final long shardNumber) {
+    public void scaleOutTo(final int shardNumber) {
         throw new IllegalStateException("Scale out is not permitted now");
     }
 
     @Override
-    public void scaleInTo(final long shardNumber) {
+    public void scaleInTo(final int shardNumber) {
         throw new UnsupportedOperationException("Scale in is not permitted not");
     }
 

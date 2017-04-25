@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
 import org.apache.mesos.state.ZooKeeperState;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
@@ -121,6 +120,26 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
 
     public boolean needMoreShard() {
         return get().getShardsNeeded() > 0;
+    }
+
+    public boolean hasSuperfluousShards() {
+        return getShards().size() > get().getShardsNeeded();
+    }
+
+    public void incrementShardNumber(final int count) {
+        val v = get();
+
+        v.setShardsNeeded(v.getShardsNeeded() + count);
+
+        setValue(v);
+    }
+
+    public void decrementShardNumber(final int count) {
+        val v = get();
+
+        v.setShardsNeeded(v.getShardsNeeded() - count);
+
+        setValue(v);
     }
 
     public void removeInstance(@Nonnull final Instance instance) {

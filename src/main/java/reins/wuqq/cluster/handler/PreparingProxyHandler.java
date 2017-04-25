@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.UUID;
 
 @Component
-@Slf4j(topic = "reins.PrepareProxy")
+@Slf4j(topic = "cluster.PrepareProxy")
 public class PreparingProxyHandler extends AbstractStateHandler {
     @Value("${docker.proxy.image}")
     private String dockerImageForProxyServer;

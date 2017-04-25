@@ -3,9 +3,7 @@ package reins.wuqq.cluster.handler;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.Protos.TaskStatus;
-import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
@@ -17,7 +15,7 @@ import javax.annotation.Nonnull;
 import java.util.UUID;
 
 @Component
-@Slf4j(topic = "reins.PrepareConfig")
+@Slf4j(topic = "cluster.PrepareConfig")
 public class PreparingConfigHandler extends AbstractStateHandler {
     @Value("${docker.config.image}")
     private String dockerImageForConfigServer;

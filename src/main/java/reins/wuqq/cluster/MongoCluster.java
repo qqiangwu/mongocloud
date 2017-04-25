@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 
 @Component("cluster")
-@Slf4j(topic = "reins.MongoCluster")
+@Slf4j(topic = "cluster.MongoCluster")
 public class MongoCluster implements Cluster, ResourceStatusListener {
     @Autowired
     private Map<ClusterState, StateHandler> handlerMap;
@@ -31,6 +31,13 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
 
         currentHandler = handlerMap.get(clusterDetail.getState());
         currentHandler.enter();
+    }
+
+    @Override
+    public void onClusterDestroyed() {
+        log.info("MongoCluster:destroyed");
+
+        clusterDetail.clear();
     }
 
     public synchronized void transitTo(@Nonnull final ClusterState state) {
@@ -49,12 +56,12 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
     }
 
     @Override
-    public synchronized void scaleOutTo(long shardNumber) {
+    public synchronized void scaleOutTo(final int shardNumber) {
         currentHandler.scaleOutTo(shardNumber);
     }
 
     @Override
-    public synchronized void scaleInTo(long shardNumber) {
+    public synchronized void scaleInTo(final int shardNumber) {
         currentHandler.scaleInTo(shardNumber);
     }
 

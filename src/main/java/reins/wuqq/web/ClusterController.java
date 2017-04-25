@@ -3,8 +3,8 @@ package reins.wuqq.web;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import reins.wuqq.Cluster;
 import reins.wuqq.cluster.MongoCluster;
 import reins.wuqq.model.ClusterDetail;
 
@@ -22,5 +22,15 @@ public class ClusterController {
     @RequestMapping(path = "/cluster", method = RequestMethod.GET)
     public ClusterDetail getClusterDetail() {
         return cluster.getDetail();
+    }
+
+    @RequestMapping(path = "/addShard")
+    public void addShard(@RequestParam(name = "count") final int count) {
+        cluster.scaleOutTo(count);
+    }
+
+    @RequestMapping(path = "/removeShard")
+    public void removeShard(@RequestParam(name = "count") final int count) {
+        cluster.scaleInTo(count);
     }
 }

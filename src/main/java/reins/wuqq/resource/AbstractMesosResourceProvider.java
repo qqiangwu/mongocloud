@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collections;
 
-@Slf4j(topic = "reins.ResourceProvider")
+@Slf4j(topic = "resourceProvider")
 public abstract class AbstractMesosResourceProvider implements ResourceProvider, Scheduler {
     @Autowired
     @Qualifier("cluster")
@@ -105,9 +105,10 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
     public void error(SchedulerDriver schedulerDriver, String s) {
         log.error("Error(msg: {})", s);
 
-        switch (s){
+        switch (s) {
             case FRAMEWORK_REMOVED:
                 frameworkConfiguration.clearFrameworkId();
+                resourceStatusListener.onClusterDestroyed();
                 break;
         }
     }
@@ -121,9 +122,10 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
         schedulerDriver.reconcileTasks(Collections.emptySet());
     }
 
-    // FIXME: ASSUME THERE IS NO ERROR
     @Override
     public void sync(@Nonnull Protos.TaskID taskID) {
+        log.info("Sync(scope: {})", taskID.getValue());
+
         val taskStatus = Protos.TaskStatus.newBuilder()
                 .setTaskId(taskID)
                 .setState(Protos.TaskState.TASK_RUNNING)

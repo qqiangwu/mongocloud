@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @ThreadSafe
-@Slf4j(topic = "reins.ResourceProvider")
+@Slf4j(topic = "resourceProvider")
 public class MesosResourceProvider extends AbstractMesosResourceProvider {
     @Autowired
     private PersistedSchedulerDetail schedulerTasks;
