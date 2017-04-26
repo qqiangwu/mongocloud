@@ -10,7 +10,6 @@ import reins.wuqq.ResourceProvider;
 import reins.wuqq.cluster.MongoCluster;
 import reins.wuqq.cluster.PersistedClusterDetail;
 import reins.wuqq.cluster.StateHandler;
-import reins.wuqq.model.ClusterDetail;
 import reins.wuqq.model.ClusterState;
 import reins.wuqq.model.Instance;
 import reins.wuqq.model.InstanceState;
@@ -36,11 +35,6 @@ public abstract class AbstractStateHandler implements StateHandler {
 
     @Value("${scheduler.conf.retry}")
     protected int retryCount;
-
-    @Override
-    public ClusterDetail getDetail() {
-        return clusterDetail.get();
-    }
 
     @Override
     public void enter() {
@@ -87,23 +81,31 @@ public abstract class AbstractStateHandler implements StateHandler {
         val instanceOpt = getInstance(taskID);
 
         if (!instanceOpt.isPresent()) {
-            log.info("< onInstanceStarted(id: {}): remove legacy instance", status.getTaskId().getValue());
-            resourceProvider.kill(status.getTaskId());
+            log.info("< onInstanceStarted(id: {}): recycle legacy instance", status.getTaskId().getValue());
+
+            val instance = instanceOpt.get();
+
+            instance.setState(InstanceState.KILLING);
+            clusterDetail.updateInstance(instance);
+
+            mongoCluster.transitTo(ClusterState.RECYCLE);
         }
     }
 
     @Override
     public void onInstanceLost(@Nonnull final TaskStatus status) {
-        log.error("> cluster.onInstanceLost(id: {})", status.getTaskId().getValue());
-
         val taskID = status.getTaskId();
         val instanceOpt = getInstance(taskID);
 
         instanceOpt.ifPresent(instance -> {
-            log.error("< cluster.onInstanceLost(instance: {})", instance.getId());
+            log.info("> cluster.onInstanceLost(instance: {}, state: {})", InstanceUtil.toReadable(instance), instance.getState());
 
             clusterDetail.removeInstance(instance);
-            mongoCluster.transitTo(ClusterState.PREPARING_CONFIG);
+
+            if (!instance.getState().equals(InstanceState.DIED)) {
+                log.error("< cluster.unexpectedLost(instance: {}, state: {})", InstanceUtil.toReadable(instance), instance.getState());
+                mongoCluster.transitTo(ClusterState.PREPARING_CONFIG);
+            }
         });
     }
 

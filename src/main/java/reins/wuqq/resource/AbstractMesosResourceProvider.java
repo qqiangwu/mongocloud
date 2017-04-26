@@ -115,7 +115,7 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
 
     private static final String FRAMEWORK_REMOVED = "Framework has been removed";
 
-    @Scheduled(fixedRate = 60 * 1000)
+    @Scheduled(fixedDelay = 30 * 1000)
     public void sync() {
         log.info("Sync(scope: all)");
 

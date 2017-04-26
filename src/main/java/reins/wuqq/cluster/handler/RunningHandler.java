@@ -29,6 +29,10 @@ public class RunningHandler extends AbstractStateHandler {
 
     @Override
     public void scaleInTo(final int shardNumber) {
+        if (shardNumber < 3) {
+            return;
+        }
+
         val currentCount = clusterDetail.getShards().size();
         val numToDecr = currentCount - shardNumber;
 

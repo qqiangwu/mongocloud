@@ -7,7 +7,9 @@ import com.mongodb.client.MongoDatabase;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reins.wuqq.model.Instance;
 
@@ -21,21 +23,70 @@ public class MongoUtil {
     private static final Bson DB_STATS_CMD = new BasicDBObject()
             .append("dbStats", 1)
             .append("scale", GB);
+    private static final Integer ERROR_SHARD_NOT_EXIST = 13129;
+
+    @Autowired
+    PersistedClusterDetail clusterDetail;
 
     public void addShardToCluster(final @Nonnull Instance router, final @Nonnull Instance shard) {
-        @Cleanup
-        val mongo = new MongoClient(router.getHostIP(), router.getPort());
-        val db = mongo.getDatabase(DB_ADMIN);
+        for (;;) {
+            try {
+                @Cleanup
+                val mongo = new MongoClient(router.getHostIP(), router.getPort());
+                val db = mongo.getDatabase(DB_ADMIN);
 
-        try {
-            db.runCommand(prepareCommandForAttending(shard));
-        } catch (MongoCommandException e) {
-            val rep = e.getResponse();
+                db.runCommand(prepareCommandForAttending(shard));
 
-            if (rep.getInt32("code").intValue() != 11000) {
-                throw e;
+                return;
+            } catch (MongoCommandException e) {
+                val code = e.getResponse().getInt32("code").intValue();
+
+                switch (code) {
+                    case 11000: return;
+                    case 6: break;
+                    default:
+                        log.error("addShardToCluster", e);
+                        return;
+                }
             }
         }
+    }
+
+    public boolean removeShardFromCluster(@Nonnull final Instance shard) {
+        val router = clusterDetail.getProxyServer();
+
+        if (!router.isPresent()) {
+            return false;
+        }
+
+        return removeShardFromClusterImpl(router.get(), shard);
+    }
+
+    private boolean removeShardFromClusterImpl(final Instance router, final Instance shard) {
+        try {
+            @Cleanup
+            val mongo = new MongoClient(router.getHostIP(), router.getPort());
+            val db = mongo.getDatabase(DB_ADMIN);
+            val cmd = new BasicDBObject()
+                    .append("removeShard", shard.getId());
+
+            val ret = db.runCommand(cmd);
+
+            if (shardNotExists(ret)) {
+                return true;
+            }
+
+            return "completed".equals(ret.getString("state"));
+        } catch (MongoCommandException e) {
+            log.error("removeShard", e);
+
+            return false;
+        }
+    }
+
+    private boolean shardNotExists(final Document document) {
+        val code = document.getInteger("code");
+        return code != null && ERROR_SHARD_NOT_EXIST.equals(code.intValue());
     }
 
     private Bson prepareCommandForAttending(final Instance shard) {

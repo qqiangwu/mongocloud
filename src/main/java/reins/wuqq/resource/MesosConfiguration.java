@@ -32,7 +32,7 @@ public class MesosConfiguration {
 
         // FIXME: increase the timeout
         return frameworkInfo
-                .setFailoverTimeout(Duration.ofMinutes(10).get(ChronoUnit.SECONDS))
+                .setFailoverTimeout(Duration.ofMinutes(5).get(ChronoUnit.SECONDS))
                 .setCheckpoint(true)
                 .setUser(FRAMEWORK_USER)
                 .setName(FRAMEWORK_NAME)

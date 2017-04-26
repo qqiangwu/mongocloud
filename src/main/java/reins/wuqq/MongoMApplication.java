@@ -1,6 +1,7 @@
 package reins.wuqq;
 
 import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
+import io.prometheus.client.spring.boot.EnableSpringBootMetricsCollector;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.SchedulerDriver;

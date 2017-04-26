@@ -34,15 +34,28 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
     }
 
     @Override
+    public synchronized boolean isInitialized() {
+        return currentHandler != null;
+    }
+
+    @Override
     public void onClusterDestroyed() {
         log.info("MongoCluster:destroyed");
 
         clusterDetail.clear();
     }
 
+    public synchronized ClusterState getState() {
+        return currentHandler.getState();
+    }
+
     public synchronized void transitTo(@Nonnull final ClusterState state) {
         val oldHandler = currentHandler;
         val newHandler = handlerMap.get(state);
+
+        if (oldHandler == newHandler) {
+            return;
+        }
 
         oldHandler.leave();
         newHandler.enter();
@@ -52,7 +65,7 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
 
     @Override
     public synchronized ClusterDetail getDetail() {
-        return currentHandler.getDetail();
+        return clusterDetail.get();
     }
 
     @Override

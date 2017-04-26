@@ -77,7 +77,6 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
 
             case SHARD:
                 v.getShards().put(instance.getId(), instance);
-                v.setShardsNeeded(v.getShardsNeeded() - 1);
                 break;
         }
 
@@ -119,7 +118,11 @@ public class PersistedClusterDetail extends PersistedState<ClusterDetail> {
     }
 
     public boolean needMoreShard() {
-        return get().getShardsNeeded() > 0;
+        return getShardsNeeded() > getShards().size();
+    }
+
+    public int getShardsNeeded() {
+        return get().getShardsNeeded();
     }
 
     public boolean hasSuperfluousShards() {

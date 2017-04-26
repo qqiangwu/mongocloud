@@ -1,7 +1,6 @@
-package reins.wuqq.cluster.monitor;
+package reins.wuqq.cluster.daemon;
 
 import io.prometheus.client.Gauge;
-import lombok.Cleanup;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,9 +29,13 @@ public class StorageReporter {
 
     @Scheduled(fixedDelay = 5 * 1000)
     public void collectStorageUsage() {
+        if (!mongoCluster.isInitialized()) {
+            return;
+        }
+
         val router = mongoCluster.getDetail().getProxyServer();
 
-        if (router == null) {
+        if (router == null || !router.getState().equals(InstanceState.RUNNING)) {
             return;
         }
 
