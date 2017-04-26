@@ -1,27 +1,25 @@
 package reins.wuqq;
 
+import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.state.ZooKeeperState;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.stereotype.Component;
 import reins.wuqq.support.PersistedState;
 import reins.wuqq.support.ZKParser;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 @EnableScheduling
 @Slf4j
+@EnablePrometheusEndpoint
 public class MongoMApplication {
 
 	public static void main(String[] args) {
@@ -62,18 +60,4 @@ public class MongoMApplication {
 
         return new ZooKeeperState(matcher.group(1), 10, TimeUnit.SECONDS, matcher.group(2));
     }
-
-    @Component
-
-	public static class CmdLineRunner implements CommandLineRunner {
-		@Autowired
-		List<PersistedState> persistedStates;
-
-		@Override
-		public void run(String... strings) throws Exception {
-			if (strings.length != 0) {
-
-			}
-		}
-	}
 }
