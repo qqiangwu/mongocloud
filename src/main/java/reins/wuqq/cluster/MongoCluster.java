@@ -49,6 +49,10 @@ public class MongoCluster implements Cluster, ResourceStatusListener {
         return currentHandler.getState();
     }
 
+    public synchronized int getShardCount() {
+        return clusterDetail.getShards().size();
+    }
+
     public synchronized void transitTo(@Nonnull final ClusterState state) {
         val oldHandler = currentHandler;
         val newHandler = handlerMap.get(state);

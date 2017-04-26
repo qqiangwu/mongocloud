@@ -10,7 +10,7 @@ import reins.wuqq.cluster.MongoUtil;
 import reins.wuqq.model.InstanceState;
 
 @Component
-public class StorageReporter {
+public class MetricReporter {
     private static final Gauge storageUsage = Gauge.build()
             .name("mm_storage_usage")
             .help("Mongo Cluster Storage Usage In GB")
@@ -27,6 +27,14 @@ public class StorageReporter {
     @Autowired
     MongoUtil mongoUtil;
 
+    public double getStorageUsage() {
+        return storageUsage.get();
+    }
+
+    public int getShardCount() {
+        return (int) shardCount.get();
+    }
+
     @Scheduled(fixedDelay = 5 * 1000)
     public void collectStorageUsage() {
         if (!mongoCluster.isInitialized()) {
@@ -40,8 +48,9 @@ public class StorageReporter {
         }
 
         val storage = mongoUtil.getStorageInGB(router);
+        val total = getShardCount() * 3.0;
 
-        storageUsage.set(storage);
+        storageUsage.set(storage / total);
     }
 
     @Scheduled(fixedDelay = 5 * 1000)
