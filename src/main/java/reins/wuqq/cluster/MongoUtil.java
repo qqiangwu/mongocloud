@@ -19,10 +19,10 @@ import javax.annotation.Nonnull;
 @Slf4j
 public class MongoUtil {
     private static final String DB_ADMIN = "admin";
-    private static final int GB = 1024 * 1024 * 1024;
+    private static final int MB = 1024 * 1024;
     private static final Bson DB_STATS_CMD = new BasicDBObject()
             .append("dbStats", 1)
-            .append("scale", GB);
+            .append("scale", MB);
     private static final Integer ERROR_SHARD_NOT_EXIST = 13129;
 
     @Autowired
@@ -97,7 +97,7 @@ public class MongoUtil {
                 .append("name", shard.getId());
     }
 
-    public int getStorageInGB(@Nonnull final Instance router) {
+    public int getStorageInMB(@Nonnull final Instance router) {
         @Cleanup
         val mongo = new MongoClient(router.getHostIP(), router.getPort());
 
@@ -106,13 +106,13 @@ public class MongoUtil {
         for (val dbNames: mongo.listDatabaseNames()) {
             val db = mongo.getDatabase(dbNames);
 
-            totalCount += getDbStorageInGB(db);
+            totalCount += getDbStorageInMB(db);
         }
 
         return totalCount;
     }
 
-    private int getDbStorageInGB(final MongoDatabase db) {
+    private int getDbStorageInMB(final MongoDatabase db) {
         try {
             val stats = db.runCommand(DB_STATS_CMD);
 

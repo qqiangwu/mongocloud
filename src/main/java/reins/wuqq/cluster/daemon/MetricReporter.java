@@ -47,8 +47,8 @@ public class MetricReporter {
             return;
         }
 
-        val storage = mongoUtil.getStorageInGB(router);
-        val total = getShardCount() * 3.0;
+        val storage = mongoUtil.getStorageInMB(router);
+        val total = getShardCount() * 3.0 * 1024;
 
         storageUsage.set(storage / total);
     }
