@@ -1,9 +1,10 @@
 package edu.reins.mongocloud.model;
 
 public enum InstanceState {
-    PREPARING,
-    LAUNCHING,
+    SUBMITTED,
+    STAGING,
     RUNNING,
-    KILLING,
+    FAILED,
+    DIEING,
     DIED
 }

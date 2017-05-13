@@ -1,12 +1,15 @@
 package edu.reins.mongocloud;
 
-import org.apache.mesos.Protos.TaskID;
 import edu.reins.mongocloud.model.Instance;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
+import java.util.List;
 
+@ThreadSafe
 public interface ResourceProvider {
-    Instance launch(@Nonnull Instance instance);
-    void kill(@Nonnull TaskID taskID);
-    void sync(@Nonnull TaskID taskID);
+    void launch(@Nonnull Instance instance);
+    void kill(@Nonnull String instanceID);
+
+    void sync(@Nonnull List<Instance> instances);
 }

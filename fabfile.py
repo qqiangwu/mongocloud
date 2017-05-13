@@ -1,15 +1,23 @@
-from fabric.api import local, lcd
+from fabric.api import local, env, cd
+from fabric.decorators import *
+from fabric.operations import *
 
-def build():
-    local('mvn package -Dmaven.test.skip=true')
+env.hosts = ['reins@192.168.1.20']
+env.password = 123456
+env.warn_only = True
 
-def send():
-    build()
-    local('scp target/mm.jar reins:~')
+work_dir = 'mongocloud'
 
-def run():
-    local('ssh reins "LIBPROCESS_IP=192.168.1.64 java -jar mm.jar"')
+@hosts("localhost")
+def pack():
+    local('mvn package -Dmaven.test.skip')
 
-def all():
-    send()
-    run()
+def upload():
+    run('mkdir -p {}'.format(work_dir))
+
+    with cd(work_dir):
+        put('target/mongocloud.jar', '.')
+
+def launch():
+    with cd(work_dir):
+        run('LIBPROCESS_IP=192.168.1.20 java -jar mongocloud.jar | tee cloud.log')

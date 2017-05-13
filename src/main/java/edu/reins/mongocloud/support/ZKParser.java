@@ -11,7 +11,7 @@ public abstract class ZKParser {
     private static final String validZkUrl = "zk://host1:port1,host2:port2,.../path";
     private static final Pattern zkURLPattern = Pattern.compile(REGEX);
 
-    public static Matcher validateZkUrl(final String zkUrl) {
+    public static final Matcher validateZkUrl(final String zkUrl) {
         final Matcher matcher = zkURLPattern.matcher(zkUrl);
 
         if (!matcher.matches()) {

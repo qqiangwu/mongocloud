@@ -2,14 +2,23 @@ package edu.reins.mongocloud.model;
 
 import lombok.Data;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
 
 @Data
-public class Instance {
+public class Instance implements Serializable {
     private InstanceType type;
-    private InstanceState state = InstanceState.PREPARING;
+
+    @Nonnull
+    private InstanceState state = InstanceState.SUBMITTED;
+
+    @Nullable
+    private String slaveID;
+
+    @Nullable
+    private String taskID;
+
     private String name;
     private String id;
     private String image;
@@ -21,8 +30,7 @@ public class Instance {
 
     @Nullable
     private String hostIP;
+
     @Nullable
     private Integer port;
-
-    private Map<String, String> env = new HashMap<>();
 }

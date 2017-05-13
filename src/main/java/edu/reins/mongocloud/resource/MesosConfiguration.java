@@ -1,5 +1,7 @@
 package edu.reins.mongocloud.resource;
 
+import edu.reins.mongocloud.exception.InitializationException;
+import edu.reins.mongocloud.resource.impl.FrameworkStore;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.MesosSchedulerDriver;
@@ -11,31 +13,53 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 @Configuration
 @Slf4j
 public class MesosConfiguration {
-    private static final String FRAMEWORK_USER = "root";
-    private static final String FRAMEWORK_NAME = "MONGO-M";
+    private static final String FRAMEWORK_NAME = "MongoCloud";
+
+    @Value("${mongocloud.web.ip}")
+    String ip;
+
+    @Value("${mongocloud.web.port}")
+    int webPort;
+
+    @Value("${mongocloud.failover.minutes}")
+    int failoverMinutes;
+
+    @PostConstruct
+    public void setup() {
+        if (ip == null) {
+            throw new InitializationException("LIBPROCESS_IP cannot be null");
+        }
+
+        log.info("setup(ip: {}, port: {})", ip, webPort);
+    }
 
     @Bean
-    public FrameworkInfo frameworkInfo(final PersistedFrameworkDetail frameworkConfiguration) {
-        log.info("FrameworkConfig:init(conf: {})", frameworkConfiguration.get());
+    public FrameworkInfo frameworkInfo(final FrameworkStore frameworkConfiguration) {
+        log.info("initFramework");
 
         val frameworkInfo = FrameworkInfo.newBuilder();
 
-        if (frameworkConfiguration.getFrameworkId() != null) {
-            frameworkInfo.setId(FrameworkID.newBuilder().setValue(frameworkConfiguration.getFrameworkId()));
-        }
+        frameworkConfiguration
+                .getFrameworkId()
+                .ifPresent(id -> {
+                    log.info("frameworkDetected(id: {})", id);
 
-        // FIXME: increase the timeout
+                    frameworkInfo.setId(FrameworkID.newBuilder().setValue(id));
+                });
+
         return frameworkInfo
-                .setFailoverTimeout(Duration.ofMinutes(5).get(ChronoUnit.SECONDS))
+                .setFailoverTimeout(Duration.ofMinutes(failoverMinutes).get(ChronoUnit.SECONDS))
                 .setCheckpoint(true)
-                .setUser(FRAMEWORK_USER)
+                .setWebuiUrl(String.format("%s:%d", ip, webPort))
                 .setName(FRAMEWORK_NAME)
+                .setUser(FRAMEWORK_NAME)
                 .build();
     }
 
@@ -43,7 +67,7 @@ public class MesosConfiguration {
     public SchedulerDriver schedulerDriver(final Scheduler scheduler,
                                            final FrameworkInfo frameworkInfo,
                                            @Value("${zk.mesos}") final String mesosMaster) {
-        log.info("SchedulerDriver:init(scheduler, {}, info: {}, zk: {})", scheduler, frameworkInfo, mesosMaster);
+        log.info("initDriver(scheduler, {}, info: {}, zk: {})", scheduler, frameworkInfo, mesosMaster);
 
         return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
     }
