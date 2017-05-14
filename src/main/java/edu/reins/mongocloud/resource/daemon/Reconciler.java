@@ -17,7 +17,7 @@ public class Reconciler {
     MesosSchedulerDriver schedulerDriver;
 
     // Implicit reconciling
-    @Scheduled(fixedDelay = 60 * 1000 * 5)
+    @Scheduled(initialDelay = 5 * 60 * 1000, fixedDelay = 60 * 1000 * 5)
     public void sync() {
         log.info("reconcile");
 
