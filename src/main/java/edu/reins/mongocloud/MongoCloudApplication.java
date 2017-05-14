@@ -22,7 +22,7 @@ public class MongoCloudApplication {
 	}
 
 	private static void applyInitializers(final ApplicationContext context) {
-	    context.getBeansOfType(MongoCloudInitializer.class).values()
+	    context.getBeansOfType(DaemonInitializer.class).values()
                 .forEach(initializer -> initializer.initialize(context));
     }
 }
