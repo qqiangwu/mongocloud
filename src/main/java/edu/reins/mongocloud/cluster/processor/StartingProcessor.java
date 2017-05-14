@@ -32,6 +32,10 @@ public class StartingProcessor extends AbstractPipelineProcessor {
     protected ClusterState handleClusterSetup() {
         log.info("clusterSetup");
 
-        return ClusterState.RECOVERING;
+        return hasInstances()? ClusterState.RECOVERING: ClusterState.RUNNING;
+    }
+
+    private boolean hasInstances() {
+        return clusterStore.getAllJobs().stream().anyMatch(j -> !j.getInstances().isEmpty());
     }
 }

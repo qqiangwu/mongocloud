@@ -8,15 +8,16 @@ import org.apache.mesos.state.ZooKeeperState;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class MongoCloudConfiguration {
     @Bean
-    public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
-        return new ThreadPoolExecutorFactoryBean();
+    public Executor threadPoolExecutorFactoryBean() {
+        return Executors.newCachedThreadPool();
     }
 
     @Bean
