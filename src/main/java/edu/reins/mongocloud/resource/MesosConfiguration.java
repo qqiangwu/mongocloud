@@ -41,9 +41,17 @@ public class MesosConfiguration {
     }
 
     @Bean
-    public FrameworkInfo frameworkInfo(final FrameworkStore frameworkConfiguration) {
-        log.info("initFramework");
+    public SchedulerDriver schedulerDriver(final Scheduler scheduler,
+                                           final FrameworkStore store,
+                                           @Value("${zk.mesos}") final String mesosMaster) {
+        log.info("initDriver(scheduler, {}, info: {}, zk: {})", scheduler, mesosMaster);
 
+        val frameworkInfo = buildFrameworkInfo(store);
+
+        return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
+    }
+
+    private FrameworkInfo buildFrameworkInfo(final FrameworkStore frameworkConfiguration) {
         val frameworkInfo = FrameworkInfo.newBuilder();
 
         frameworkConfiguration
@@ -61,14 +69,5 @@ public class MesosConfiguration {
                 .setName(FRAMEWORK_NAME)
                 .setUser(FRAMEWORK_NAME)
                 .build();
-    }
-
-    @Bean
-    public SchedulerDriver schedulerDriver(final Scheduler scheduler,
-                                           final FrameworkInfo frameworkInfo,
-                                           @Value("${zk.mesos}") final String mesosMaster) {
-        log.info("initDriver(scheduler, {}, info: {}, zk: {})", scheduler, frameworkInfo, mesosMaster);
-
-        return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
     }
 }

@@ -1,6 +1,5 @@
 package edu.reins.mongocloud;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.reins.mongocloud.support.ZKParser;
 import lombok.val;
 import org.apache.mesos.state.State;
@@ -25,10 +24,5 @@ public class MongoCloudConfiguration {
         val matcher = ZKParser.validateZkUrl(zk);
 
         return new ZooKeeperState(matcher.group(1), 10, TimeUnit.SECONDS, matcher.group(2));
-    }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
     }
 }

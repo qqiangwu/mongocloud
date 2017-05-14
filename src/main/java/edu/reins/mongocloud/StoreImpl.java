@@ -61,8 +61,6 @@ public class StoreImpl implements Store {
         }
     }
 
-
-
     @Override
     public synchronized void clear(@Nonnull final String key) {
         val v = cache.get(key);
@@ -76,7 +74,12 @@ public class StoreImpl implements Store {
     @Override
     public synchronized <T extends Serializable> Optional<T> get(@Nonnull final String key, @Nonnull final Class<T> clazz) {
         try {
-            val v = cache.get(key);
+            Variable v = cache.get(key);
+
+            if (v == null) {
+                v = await(persistentState.fetch(key));
+                cache.put(key, v);
+            }
 
             if (v != null) {
                 val bytes = v.value();
