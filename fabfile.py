@@ -16,6 +16,7 @@ def upload():
     run('mkdir -p {}'.format(work_dir))
 
     with cd(work_dir):
+        put('bin/*', '.')
         put('target/mongocloud.jar', '.')
 
 def launch():
