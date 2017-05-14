@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Component
 @ThreadSafe
 @SoftState
-@Slf4j(topic = "resourceProvider")
+@Slf4j
 public class MesosResourceProvider extends AbstractMesosResourceProvider {
     @Value("${docker.volume}")
     private String dockerVolume;

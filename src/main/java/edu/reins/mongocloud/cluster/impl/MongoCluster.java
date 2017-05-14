@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 
 @Component
-@Slf4j(topic = "cluster.MongoCluster")
+@Slf4j
 @ThreadSafe
 public class MongoCluster implements Cluster {
     @Autowired

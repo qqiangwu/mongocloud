@@ -57,7 +57,7 @@ public class MesosConfiguration {
         return frameworkInfo
                 .setFailoverTimeout(Duration.ofMinutes(failoverMinutes).get(ChronoUnit.SECONDS))
                 .setCheckpoint(true)
-                .setWebuiUrl(String.format("%s:%d", ip, webPort))
+                .setWebuiUrl(String.format("http://%s:%d", ip, webPort))
                 .setName(FRAMEWORK_NAME)
                 .setUser(FRAMEWORK_NAME)
                 .build();

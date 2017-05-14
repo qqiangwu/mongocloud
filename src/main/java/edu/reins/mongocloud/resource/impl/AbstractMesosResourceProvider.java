@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j(topic = "resourceProvider")
+@Slf4j
 @Stateless
 public abstract class AbstractMesosResourceProvider implements ResourceProvider, Scheduler {
     @Autowired
