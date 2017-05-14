@@ -12,6 +12,10 @@ work_dir = 'mongocloud'
 def pack():
     local('mvn package -Dmaven.test.skip')
 
+@hosts("localhost")
+def remoteUpload():
+    local('scp target/mongocloud.jar mooc2:~/mongocloud')
+
 def upload():
     run('mkdir -p {}'.format(work_dir))
 

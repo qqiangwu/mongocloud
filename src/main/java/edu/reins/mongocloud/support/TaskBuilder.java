@@ -50,8 +50,8 @@ public class TaskBuilder {
         val commandInfo = buildCommand();
 
         return Protos.TaskInfo.newBuilder()
-                .setTaskId(MesosUtil.toID(instance.getId()))
-                .setName(ClusterUtil.getTaskName(instance))
+                .setTaskId(Tasks.id(instance))
+                .setName(Tasks.name(instance))
                 .setSlaveId(offer.getSlaveId())
                 .setContainer(containerInfo)
                 .setCommand(commandInfo)

@@ -2,15 +2,12 @@ package edu.reins.mongocloud.model;
 
 import lombok.Data;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 
 @Data
 public class Instance implements Serializable {
     private InstanceType type;
-
-    @Nonnull
     private InstanceState state = InstanceState.SUBMITTED;
 
     @Nullable

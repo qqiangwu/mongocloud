@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Component
 public class FrameworkStore {
-    private static final String FRAMEWORK_CONFIGURATION_VAR = Store.META_PREFIX + "frameworkConf";
+    private static final String FRAMEWORK_CONFIGURATION_VAR = Store.META_PREFIX + "frameworkConfx";
 
     @Autowired
     Store persistentStore;

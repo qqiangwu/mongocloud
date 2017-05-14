@@ -4,7 +4,7 @@ import edu.reins.mongocloud.ResourceProvider;
 import edu.reins.mongocloud.ResourceStatusListener;
 import edu.reins.mongocloud.model.Instance;
 import edu.reins.mongocloud.model.InstanceState;
-import edu.reins.mongocloud.support.InstanceUtil;
+import edu.reins.mongocloud.support.Instances;
 import edu.reins.mongocloud.support.annotation.Ignored;
 import edu.reins.mongocloud.support.annotation.Stateless;
 import lombok.extern.slf4j.Slf4j;
@@ -143,8 +143,8 @@ public abstract class AbstractMesosResourceProvider implements ResourceProvider,
             if (instance.getState().equals(InstanceState.SUBMITTED)) {
                 launch(instance);
             } else {
-                final Optional<Protos.SlaveID> slaveID = InstanceUtil.slaveID(instance);
-                final Optional<Protos.TaskID> taskID = InstanceUtil.taskID(instance);
+                final Optional<Protos.SlaveID> slaveID = Instances.slaveID(instance);
+                final Optional<Protos.TaskID> taskID = Instances.taskID(instance);
 
                 if (!slaveID.isPresent() || !taskID.isPresent()) {
                     log.warn("syncBadInstance(instance: {})", instance);

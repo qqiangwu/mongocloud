@@ -5,7 +5,7 @@ import edu.reins.mongocloud.cluster.ClusterState;
 import edu.reins.mongocloud.cluster.ClusterStore;
 import edu.reins.mongocloud.cluster.Job;
 import edu.reins.mongocloud.model.Instance;
-import edu.reins.mongocloud.support.InstanceUtil;
+import edu.reins.mongocloud.support.Instances;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.Protos;
@@ -29,7 +29,7 @@ public abstract class JobAwarePipelineProcessor extends AbstractPipelineProcesso
 
     @Override
     protected ClusterState handleInstanceRunning(final Protos.TaskStatus payload) {
-        val instanceID = InstanceUtil.instanceID(payload);
+        val instanceID = Instances.instanceID(payload);
 
         getJobOrKill(instanceID)
                 .ifPresent(job -> job.onInstanceRunning(instanceID, payload));
@@ -63,7 +63,7 @@ public abstract class JobAwarePipelineProcessor extends AbstractPipelineProcesso
 
     @Override
     protected ClusterState handleInstanceKilled(final Protos.TaskStatus payload) {
-        val instanceID = InstanceUtil.instanceID(payload);
+        val instanceID = Instances.instanceID(payload);
 
         // if not found, ignore it
         getJob(instanceID)
@@ -74,7 +74,7 @@ public abstract class JobAwarePipelineProcessor extends AbstractPipelineProcesso
 
     @Override
     protected ClusterState handleInstanceFailed(final Protos.TaskStatus payload) {
-        val instanceID = InstanceUtil.instanceID(payload);
+        val instanceID = Instances.instanceID(payload);
 
         getJob(instanceID)
                 .ifPresent(job -> job.onInstanceFailed(instanceID, payload));
@@ -84,7 +84,7 @@ public abstract class JobAwarePipelineProcessor extends AbstractPipelineProcesso
 
     @Override
     protected ClusterState handleInstanceError(final Protos.TaskStatus payload) {
-        val instanceID = InstanceUtil.instanceID(payload);
+        val instanceID = Instances.instanceID(payload);
 
         getJob(instanceID)
                 .ifPresent(job -> job.onInstanceError(instanceID, payload));

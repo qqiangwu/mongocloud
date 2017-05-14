@@ -32,23 +32,26 @@ public class StoreImpl implements Store {
 
     @Override
     public synchronized <T extends Serializable> void put(@Nonnull final String key, @Nonnull final T value) {
-        Variable v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
+        val v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
 
         val bytes = writeValueAsBytes(value);
-        v.mutate(bytes);
+        val updated = v.mutate(bytes);
 
-        await(persistentState.store(v));
+        // persist first
+        await(persistentState.store(updated));
+
+        cache.put(key, updated);
     }
 
     private byte[] writeValueAsBytes(final Serializable serializable) {
         try {
             @Cleanup
             val byteBuffer = new ByteArrayOutputStream();
+            @Cleanup
             val objectOutput = new ObjectOutputStream(byteBuffer);
 
             objectOutput.writeObject(serializable);
             objectOutput.flush();
-            objectOutput.close();
 
             return byteBuffer.toByteArray();
         } catch (IOException e) {
@@ -71,7 +74,7 @@ public class StoreImpl implements Store {
     @Override
     public synchronized <T extends Serializable> Optional<T> get(@Nonnull final String key, @Nonnull final Class<T> clazz) {
         try {
-            Variable v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
+            val v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
 
             if (v != null) {
                 val bytes = v.value();
@@ -90,7 +93,9 @@ public class StoreImpl implements Store {
     }
 
     private <T> T readValue(final byte[] bytes, final Class<T> clazz) throws IOException, ClassNotFoundException {
+        @Cleanup
         val inBuffer = new ByteArrayInputStream(bytes);
+        @Cleanup
         val objectInput = new ObjectInputStream(inBuffer);
         val obj = objectInput.readObject();
 
