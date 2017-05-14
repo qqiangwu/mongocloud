@@ -23,6 +23,8 @@ public class DriverInitializer implements MongoCloudInitializer {
         log.info("initDriver");
 
         executor.execute(() -> {
+            Thread.currentThread().setName("MesosDriver");
+
             log.info("launchDriver");
 
             schedulerDriver.run();

@@ -32,11 +32,7 @@ public class StoreImpl implements Store {
 
     @Override
     public synchronized <T extends Serializable> void put(@Nonnull final String key, @Nonnull final T value) {
-        Variable v = cache.get(key);
-
-        if (v == null) {
-            v = await(persistentState.fetch(key));
-        }
+        Variable v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
 
         val bytes = writeValueAsBytes(value);
         v.mutate(bytes);
@@ -48,10 +44,11 @@ public class StoreImpl implements Store {
         try {
             @Cleanup
             val byteBuffer = new ByteArrayOutputStream();
-            @Cleanup
             val objectOutput = new ObjectOutputStream(byteBuffer);
 
             objectOutput.writeObject(serializable);
+            objectOutput.flush();
+            objectOutput.close();
 
             return byteBuffer.toByteArray();
         } catch (IOException e) {
@@ -66,7 +63,7 @@ public class StoreImpl implements Store {
         val v = cache.get(key);
 
         if (v != null) {
-            cache.remove(v);
+            cache.remove(key);
             await(persistentState.expunge(v));
         }
     }
@@ -74,12 +71,7 @@ public class StoreImpl implements Store {
     @Override
     public synchronized <T extends Serializable> Optional<T> get(@Nonnull final String key, @Nonnull final Class<T> clazz) {
         try {
-            Variable v = cache.get(key);
-
-            if (v == null) {
-                v = await(persistentState.fetch(key));
-                cache.put(key, v);
-            }
+            Variable v = cache.computeIfAbsent(key, k -> await(persistentState.fetch(key)));
 
             if (v != null) {
                 val bytes = v.value();

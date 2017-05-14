@@ -44,8 +44,9 @@ public class MesosConfiguration {
     public SchedulerDriver schedulerDriver(final Scheduler scheduler,
                                            final FrameworkStore store,
                                            @Value("${zk.mesos}") final String mesosMaster) {
-        log.info("initDriver(scheduler, {}, info: {}, zk: {})", scheduler, mesosMaster);
+        log.info("initDriver(scheduler: {}, zk: {})", scheduler, mesosMaster);
 
+        // FIXME:   cannot save frameworkID
         val frameworkInfo = buildFrameworkInfo(store);
 
         return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
