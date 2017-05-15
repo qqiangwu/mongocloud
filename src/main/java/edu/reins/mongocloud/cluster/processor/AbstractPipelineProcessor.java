@@ -4,8 +4,7 @@ import edu.reins.mongocloud.cluster.ClusterPipelineProcessor;
 import edu.reins.mongocloud.cluster.ClusterState;
 import edu.reins.mongocloud.cluster.command.Command;
 import edu.reins.mongocloud.cluster.command.CommandType;
-import edu.reins.mongocloud.cluster.exception.BadCommandException;
-import edu.reins.mongocloud.cluster.exception.IllegalTransitionException;
+import edu.reins.mongocloud.exception.internal.ProgrammingError;
 import edu.reins.mongocloud.model.Instance;
 import edu.reins.mongocloud.model.JobDefinition;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,7 @@ public abstract class AbstractPipelineProcessor implements ClusterPipelineProces
             case CREATE_JOB: return handleJobCreation(command.getPayload(JobDefinition.class));
         }
 
-        throw new BadCommandException(String.format("command: %s", command));
+        throw new ProgrammingError(String.format("bad command: %s", command));
     }
 
     @Override
@@ -54,38 +53,42 @@ public abstract class AbstractPipelineProcessor implements ClusterPipelineProces
     }
 
     protected ClusterState handleClusterFailover() {
-        throw new IllegalTransitionException(state, CommandType.CLUSTER_FAILOVER);
+        throw illegalTransitionError(CommandType.CLUSTER_FAILOVER);
     }
 
     protected ClusterState handleClusterDestroyed() {
-        throw new IllegalTransitionException(state, CommandType.CLUSTER_DESTROYED);
+        throw illegalTransitionError(CommandType.CLUSTER_DESTROYED);
     }
 
     protected ClusterState handleClusterSetup() {
-        throw new IllegalTransitionException(state, CommandType.CLUSTER_SETUP);
+        throw illegalTransitionError(CommandType.CLUSTER_SETUP);
     }
 
     protected ClusterState handleInstanceRunning(final Protos.TaskStatus payload) {
-        throw new IllegalTransitionException(state, CommandType.INSTANCE_RUNNING);
+        throw illegalTransitionError(CommandType.INSTANCE_RUNNING);
     }
 
     protected ClusterState handleInstanceLaunched(final Instance payload) {
-        throw new IllegalTransitionException(state, CommandType.INSTANCE_LAUNCHED);
+        throw illegalTransitionError(CommandType.INSTANCE_LAUNCHED);
     }
 
     protected ClusterState handleInstanceKilled(final Protos.TaskStatus payload) {
-        throw new IllegalTransitionException(state, CommandType.INSTANCE_KILLED);
+        throw illegalTransitionError(CommandType.INSTANCE_KILLED);
     }
 
     protected ClusterState handleInstanceFailed(final Protos.TaskStatus payload) {
-        throw new IllegalTransitionException(state, CommandType.INSTANCE_FAILED);
+        throw illegalTransitionError(CommandType.INSTANCE_FAILED);
     }
 
     protected ClusterState handleInstanceError(final Protos.TaskStatus payload) {
-        throw new IllegalTransitionException(state, CommandType.INSTANCE_ERROR);
+        throw illegalTransitionError(CommandType.INSTANCE_ERROR);
     }
 
     protected ClusterState handleJobCreation(final JobDefinition payload) {
-        throw new IllegalTransitionException(state, CommandType.CREATE_JOB);
+        throw illegalTransitionError(CommandType.CREATE_JOB);
+    }
+    
+    private ProgrammingError illegalTransitionError(final CommandType type) {
+        return new ProgrammingError(String.format("bad transition: state=%s, type=%s", state, type));
     }
 }

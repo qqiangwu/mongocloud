@@ -5,8 +5,6 @@ import edu.reins.mongocloud.cluster.ClusterPipeline;
 import edu.reins.mongocloud.cluster.ClusterPipelineProcessor;
 import edu.reins.mongocloud.cluster.ClusterState;
 import edu.reins.mongocloud.cluster.command.Command;
-import edu.reins.mongocloud.cluster.exception.BadCommandException;
-import edu.reins.mongocloud.cluster.exception.IllegalTransitionException;
 import edu.reins.mongocloud.exception.ClientException;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -100,8 +98,6 @@ public class ClusterPipelineImpl implements ClusterPipeline, Runnable {
             log.info("pipeline(cmd: {})", cmd.getType());
 
             return Optional.of(currentProcessor.process(cmd));
-        } catch (BadCommandException | IllegalTransitionException e) {
-            log.error("programmingError", e);
         } catch (ClientException e) {
             cmd.setException(e);
             return Optional.empty();

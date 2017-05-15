@@ -1,7 +1,7 @@
 package edu.reins.mongocloud;
 
 import edu.reins.mongocloud.exception.ServiceException;
-import edu.reins.mongocloud.exception.internal.ProgrammingException;
+import edu.reins.mongocloud.exception.internal.ProgrammingError;
 import edu.reins.mongocloud.support.annotation.SoftState;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +57,7 @@ public class StoreImpl implements Store {
         } catch (IOException e) {
             log.error("writeFailed", e);
 
-            throw new ProgrammingException("write object failed", e);
+            throw new ProgrammingError("write object failed", e);
         }
     }
 

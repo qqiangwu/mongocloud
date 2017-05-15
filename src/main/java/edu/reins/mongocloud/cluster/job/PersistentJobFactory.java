@@ -4,7 +4,7 @@ import edu.reins.mongocloud.Store;
 import edu.reins.mongocloud.cluster.Job;
 import edu.reins.mongocloud.cluster.JobFactory;
 import edu.reins.mongocloud.cluster.job.rs.ReplicaSetJobBuilder;
-import edu.reins.mongocloud.exception.internal.NotImplementedException;
+import edu.reins.mongocloud.exception.internal.NotImplementedError;
 import edu.reins.mongocloud.model.Instance;
 import edu.reins.mongocloud.model.InstanceType;
 import edu.reins.mongocloud.model.JobDefinition;
@@ -65,6 +65,6 @@ public class PersistentJobFactory implements JobFactory {
 
     @Override
     public Job createShardCluster(@Nonnull final JobDefinition jobDefinition) {
-        throw new NotImplementedException("shard is not supported now");
+        throw new NotImplementedError("shard is not supported now");
     }
 }

@@ -3,7 +3,7 @@ package edu.reins.mongocloud.cluster.impl;
 import edu.reins.mongocloud.Store;
 import edu.reins.mongocloud.cluster.ClusterStore;
 import edu.reins.mongocloud.cluster.Job;
-import edu.reins.mongocloud.exception.internal.NotImplementedException;
+import edu.reins.mongocloud.exception.internal.NotImplementedError;
 import edu.reins.mongocloud.support.annotation.SoftState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -55,7 +55,7 @@ public class ClusterStoreImpl implements ClusterStore {
 
     @Override
     public synchronized void clear() {
-        throw new NotImplementedException("ClusterStoreImpl::clear");
+        throw new NotImplementedError("ClusterStoreImpl::clear");
     }
 
     @Override

@@ -2,7 +2,7 @@ package edu.reins.mongocloud.cluster.job.rs;
 
 import edu.reins.mongocloud.Store;
 import edu.reins.mongocloud.cluster.Job;
-import edu.reins.mongocloud.cluster.exception.JobDetachedException;
+import edu.reins.mongocloud.exception.internal.ProgrammingError;
 import edu.reins.mongocloud.model.Instance;
 import edu.reins.mongocloud.model.JobDefinition;
 import lombok.Getter;
@@ -10,7 +10,6 @@ import lombok.Setter;
 import org.apache.mesos.Protos;
 
 import javax.annotation.Nonnull;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -35,12 +34,12 @@ public class ReplicaSetJob implements Job {
 
     @Override
     public List<Instance> getInstances() {
-        return Collections.emptyList();
+        return instances;
     }
 
     @Override
     public boolean contains(@Nonnull final String instanceID) {
-        return false;
+        return instances.stream().anyMatch(i -> i.getId().equals(instanceID));
     }
 
     @Override
@@ -52,7 +51,7 @@ public class ReplicaSetJob implements Job {
 
     private void ensureAttached() {
         if (persistentStore == null) {
-            throw new JobDetachedException(jobDefinition.getName());
+            throw new ProgrammingError(String.format("job[%s] shouldn't be detached", jobDefinition.getName()));
         }
     }
 
