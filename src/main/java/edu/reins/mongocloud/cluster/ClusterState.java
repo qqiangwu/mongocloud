@@ -1,8 +1,8 @@
 package edu.reins.mongocloud.cluster;
 
 public enum ClusterState {
-    STARTING,
-    RECOVERING,
+    STARTT,
+    RECOVER,
     RUNNING,
-    CLOSING
+    CLOSED
 }
