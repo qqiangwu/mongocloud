@@ -7,9 +7,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-/**
- * @author wuqq
- */
 @Component
 public class ClusterImpl implements Actor<ClusterEvent> {
     @Autowired

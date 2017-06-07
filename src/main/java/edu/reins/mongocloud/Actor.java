@@ -1,8 +1,8 @@
 package edu.reins.mongocloud;
 
-/**
- * @author wuqq
- */
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 public interface Actor<E extends Event> {
     /**
      * @param event

@@ -8,10 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 @Daemon
 @Slf4j
 public class AsyncEventBus implements EventBus {
-    private final Map<Class, Actor> eventDispatchers = new HashMap<>();
+    private final Map<Class, Actor> eventDispatchers = new ConcurrentHashMap<>();
     private final BlockingQueue<Event> eventQueue = new ArrayBlockingQueue<>(1024);
 
     @Autowired
