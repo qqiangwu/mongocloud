@@ -1,6 +1,6 @@
 package edu.reins.mongocloud.support;
 
-import edu.reins.mongocloud.model.Instance;
+import edu.reins.mongocloud.instance.Instance;
 import lombok.val;
 import org.apache.mesos.Protos;
 
@@ -18,19 +18,19 @@ public class TaskBuilder {
     @Nonnull
     private Instance instance;
 
-    public TaskBuilder setDockerVolume(@Nonnull final String volume) {
+    public TaskBuilder setDockerVolume(final String volume) {
         this.volume = volume;
 
         return this;
     }
 
-    public TaskBuilder setOffer(@Nonnull final Protos.Offer offer) {
+    public TaskBuilder setOffer(final Protos.Offer offer) {
         this.offer = offer;
 
         return this;
     }
 
-    public TaskBuilder setInsance(@Nonnull final Instance insance) {
+    public TaskBuilder setInsance(final Instance insance) {
         this.instance = insance;
 
         return this;

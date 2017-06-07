@@ -5,7 +5,6 @@ import lombok.ToString;
 import lombok.val;
 import org.apache.mesos.Protos;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,7 @@ public final class ResourceDescriptor {
     private final long disk;
     private final List<Integer> ports = new ArrayList<>();
 
-    public ResourceDescriptor(@Nonnull final List<Protos.Resource> resources) {
+    public ResourceDescriptor(final List<Protos.Resource> resources) {
         val resourceMap = resources
                 .stream()
                 .collect(Collectors.toMap(x -> x.getName(), Function.identity()));
@@ -36,16 +35,16 @@ public final class ResourceDescriptor {
         }
     }
 
-    private double getDoubleOrDefault(@Nonnull final Map<String, Protos.Resource> resources,
-                                      @Nonnull final String key,
-                                      @Nonnull double defaultValue) {
+    private double getDoubleOrDefault(final Map<String, Protos.Resource> resources,
+                                      final String key,
+                                      double defaultValue) {
         val r = resources.get(key);
         return r == null? defaultValue: r.getScalar().getValue();
     }
 
-    private long getLongOrDefault(@Nonnull final Map<String, Protos.Resource> resources,
-                                      @Nonnull final String key,
-                                      @Nonnull long defaultValue) {
+    private long getLongOrDefault(final Map<String, Protos.Resource> resources,
+                                      final String key,
+                                      long defaultValue) {
         val r = resources.get(key);
         return r == null? defaultValue: (long) r.getScalar().getValue();
     }

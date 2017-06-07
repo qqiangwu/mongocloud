@@ -14,7 +14,7 @@ import java.util.Collections;
 @ThreadSafe
 public class Reconciler {
     @Autowired
-    MesosSchedulerDriver schedulerDriver;
+    private MesosSchedulerDriver schedulerDriver;
 
     // Implicit reconciling
     @Scheduled(initialDelay = 5 * 60 * 1000, fixedDelay = 60 * 1000 * 5)

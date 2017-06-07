@@ -1,13 +1,11 @@
 package edu.reins.mongocloud.exception;
 
-import javax.annotation.Nonnull;
-
 public class ServiceException extends RuntimeException {
-    public ServiceException(@Nonnull final String msg) {
+    public ServiceException(final String msg) {
         super(msg);
     }
 
-    public ServiceException(@Nonnull final String msg, @Nonnull final Throwable cause) {
+    public ServiceException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

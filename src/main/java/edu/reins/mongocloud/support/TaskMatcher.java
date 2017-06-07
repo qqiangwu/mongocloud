@@ -1,14 +1,13 @@
 package edu.reins.mongocloud.support;
 
-import edu.reins.mongocloud.model.Instance;
+import edu.reins.mongocloud.instance.Instance;
 import lombok.val;
 import org.apache.mesos.Protos;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
 public abstract class TaskMatcher {
-    public static boolean matches(@Nonnull final Protos.Offer offer, @Nonnull final Instance instance) {
+    public static boolean matches(final Protos.Offer offer, final Instance instance) {
         return hasSufficientResource(offer.getResourcesList(), instance);
     }
 

@@ -1,11 +1,9 @@
 package edu.reins.mongocloud.resource;
 
 import edu.reins.mongocloud.exception.InitializationException;
-import edu.reins.mongocloud.resource.impl.FrameworkStore;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mesos.MesosSchedulerDriver;
-import org.apache.mesos.Protos.FrameworkID;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
@@ -41,34 +39,17 @@ public class MesosConfiguration {
     }
 
     @Bean
-    public SchedulerDriver schedulerDriver(final Scheduler scheduler,
-                                           final FrameworkStore store,
-                                           @Value("${zk.mesos}") final String mesosMaster) {
+    public SchedulerDriver schedulerDriver(final Scheduler scheduler, @Value("${zk.mesos}") final String mesosMaster) {
         log.info("initDriver(scheduler: {}, zk: {})", scheduler, mesosMaster);
 
-        // FIXME:   cannot save frameworkID
-        val frameworkInfo = buildFrameworkInfo(store);
-
-        return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
-    }
-
-    private FrameworkInfo buildFrameworkInfo(final FrameworkStore frameworkConfiguration) {
-        val frameworkInfo = FrameworkInfo.newBuilder();
-
-        frameworkConfiguration
-                .getFrameworkId()
-                .ifPresent(id -> {
-                    log.info("frameworkDetected(id: {})", id);
-
-                    frameworkInfo.setId(FrameworkID.newBuilder().setValue(id));
-                });
-
-        return frameworkInfo
+        val frameworkInfo = FrameworkInfo.newBuilder()
                 .setFailoverTimeout(Duration.ofMinutes(failoverMinutes).get(ChronoUnit.SECONDS))
                 .setCheckpoint(true)
                 .setWebuiUrl(String.format("http://%s:%d", ip, webPort))
                 .setName(FRAMEWORK_NAME)
                 .setUser(FRAMEWORK_NAME)
                 .build();
+
+        return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);
     }
 }
