@@ -1,17 +1,18 @@
 package edu.reins.mongocloud.support;
 
-import edu.reins.mongocloud.instance.Instance;
+import edu.reins.mongocloud.model.InstanceDefinition;
 import lombok.val;
 import org.apache.mesos.Protos;
 
 import java.util.List;
 
 public abstract class TaskMatcher {
-    public static boolean matches(final Protos.Offer offer, final Instance instance) {
+    public static boolean matches(final Protos.Offer offer, final InstanceDefinition instance) {
         return hasSufficientResource(offer.getResourcesList(), instance);
     }
 
-    private static boolean hasSufficientResource(final List<Protos.Resource> offeredResources, final Instance instance) {
+    private static boolean hasSufficientResource(
+            final List<Protos.Resource> offeredResources, final InstanceDefinition instance) {
         val offeredResourceDesc = new ResourceDescriptor(offeredResources);
 
         if (offeredResourceDesc.getCpus() < instance.getCpus()) {

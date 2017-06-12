@@ -1,22 +1,18 @@
 package edu.reins.mongocloud.support;
 
-import edu.reins.mongocloud.instance.Instance;
+import edu.reins.mongocloud.model.InstanceDefinition;
+import edu.reins.mongocloud.model.InstanceLaunchRequest;
 import lombok.val;
 import org.apache.mesos.Protos;
 
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Objects;
 
 public class TaskBuilder {
-    @Nonnull
     private String volume;
-
-    @Nonnull
     private Protos.Offer offer;
-
-    @Nonnull
-    private Instance instance;
+    private InstanceLaunchRequest instanceRequest;
+    private InstanceDefinition definition;
 
     public TaskBuilder setDockerVolume(final String volume) {
         this.volume = volume;
@@ -30,8 +26,9 @@ public class TaskBuilder {
         return this;
     }
 
-    public TaskBuilder setInsance(final Instance insance) {
-        this.instance = insance;
+    public TaskBuilder setInstanceRequest(final InstanceLaunchRequest instanceRequest) {
+        this.instanceRequest = instanceRequest;
+        this.definition = instanceRequest.getDefinition();
 
         return this;
     }
@@ -39,7 +36,7 @@ public class TaskBuilder {
     public Protos.TaskInfo build() {
         Objects.requireNonNull(volume);
         Objects.requireNonNull(offer);
-        Objects.requireNonNull(instance);
+        Objects.requireNonNull(instanceRequest);
 
         return buildTask();
     }
@@ -50,8 +47,8 @@ public class TaskBuilder {
         val commandInfo = buildCommand();
 
         return Protos.TaskInfo.newBuilder()
-                .setTaskId(Tasks.id(instance))
-                .setName(Tasks.name(instance))
+                .setTaskId(Instances.toTaskID(instanceRequest.getInstanceID()))
+                .setName(Instances.toTaskName(instanceRequest.getInstanceID()))
                 .setSlaveId(offer.getSlaveId())
                 .setContainer(containerInfo)
                 .setCommand(commandInfo)
@@ -66,8 +63,6 @@ public class TaskBuilder {
         val containerPort = getContainerPort();
         val hostPort = new ResourceDescriptor(offer.getResourcesList()).getPorts().get(0);
 
-        instance.setPort(hostPort);
-
         return Protos.ContainerInfo.DockerInfo.PortMapping.newBuilder()
                 .setContainerPort(containerPort)
                 .setHostPort(hostPort)
@@ -76,17 +71,17 @@ public class TaskBuilder {
     }
 
     private int getContainerPort() {
-        switch (instance.getType()) {
-            case CONFIG_SERVER: return 27019;
-            case PROXY_SERVER: return 27017;
-            case DATA_SERVER: return 27018;
+        switch (instanceRequest.getDefinition().getType()) {
+            case CONFIG: return 27019;
+            case ROUTER: return 27017;
+            case DATA: return 27018;
         }
 
-        throw new IllegalArgumentException("Bad instance type");
+        throw new AssertionError("Bad instanceRequest type");
     }
 
     private Protos.CommandInfo buildCommand() {
-        val args = instance.getArgs().split(" ");
+        val args = instanceRequest.getDefinition().getArgs().split(" ");
 
         return Protos.CommandInfo.newBuilder()
                 .setShell(false)
@@ -98,7 +93,7 @@ public class TaskBuilder {
         return Protos.Resource.newBuilder()
                 .setName("disk")
                 .setType(Protos.Value.Type.SCALAR)
-                .setScalar(Protos.Value.Scalar.newBuilder().setValue(instance.getDisk()))
+                .setScalar(Protos.Value.Scalar.newBuilder().setValue(definition.getDisk()))
                 .build();
     }
 
@@ -106,7 +101,7 @@ public class TaskBuilder {
         return Protos.Resource.newBuilder()
                 .setName("cpus")
                 .setType(Protos.Value.Type.SCALAR)
-                .setScalar(Protos.Value.Scalar.newBuilder().setValue(instance.getCpus()))
+                .setScalar(Protos.Value.Scalar.newBuilder().setValue(definition.getCpus()))
                 .build();
     }
 
@@ -114,7 +109,7 @@ public class TaskBuilder {
         return Protos.Resource.newBuilder()
                 .setName("mem")
                 .setType(Protos.Value.Type.SCALAR)
-                .setScalar(Protos.Value.Scalar.newBuilder().setValue(instance.getMemory()))
+                .setScalar(Protos.Value.Scalar.newBuilder().setValue(definition.getMemory()))
                 .build();
     }
 
@@ -132,7 +127,7 @@ public class TaskBuilder {
 
     private Protos.ContainerInfo.Builder buildContainer(final Protos.ContainerInfo.DockerInfo.PortMapping portMapping) {
         val docker = Protos.ContainerInfo.DockerInfo.newBuilder()
-                .setImage(instance.getImage())
+                .setImage(definition.getImage())
                 .setNetwork(Protos.ContainerInfo.DockerInfo.Network.BRIDGE)
                 .setForcePullImage(false)
                 .addPortMappings(portMapping)

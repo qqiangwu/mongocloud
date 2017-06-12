@@ -1,35 +1,27 @@
 package edu.reins.mongocloud.instance;
 
 import edu.reins.mongocloud.impl.AbstractEvent;
-
-import java.util.Optional;
+import edu.reins.mongocloud.model.InstanceID;
 
 /**
  * @author wuqq
  */
 public final class InstanceEvent extends AbstractEvent<InstanceEventType> {
-    private final String instanceID;
-    private final Instance instance;
+    private final InstanceID instanceID;
 
-    public InstanceEvent(final InstanceEventType eventType, final String instanceID) {
+    public InstanceEvent(final InstanceEventType eventType, final InstanceID instanceID) {
         super(eventType);
 
         this.instanceID = instanceID;
-        this.instance = null;
     }
 
-    public InstanceEvent(final InstanceEventType eventType, final Instance instance) {
-        super(eventType);
+    public InstanceEvent(final InstanceEventType eventType, final InstanceID instanceID, final Object payload) {
+        super(eventType, payload);
 
-        this.instanceID = instance.getId();
-        this.instance = instance;
+        this.instanceID = instanceID;
     }
 
-    public String getInstanceID() {
+    public InstanceID getInstanceID() {
         return instanceID;
-    }
-
-    public Optional<Instance> getInstance() {
-        return Optional.ofNullable(instance);
     }
 }

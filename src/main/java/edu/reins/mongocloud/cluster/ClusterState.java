@@ -1,8 +1,16 @@
 package edu.reins.mongocloud.cluster;
 
 public enum ClusterState {
-    STARTT,
-    RECOVER,
+    NEW,
+
+    WAIT_CONFIG,
+    WAIT_ROUTER,
+    WAIT_SHARDS,
+
+    SUBMITTED,
+
     RUNNING,
-    CLOSED
+
+    CLEANUP,
+    DIED
 }

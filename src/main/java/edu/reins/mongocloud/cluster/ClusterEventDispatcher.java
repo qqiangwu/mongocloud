@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.instance;
+package edu.reins.mongocloud.cluster;
 
 import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.Context;
@@ -9,12 +9,9 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-/**
- * @author wuqq
- */
 @Component
 @Slf4j
-public class InstanceEventDispatcher implements Actor<InstanceEvent> {
+public class ClusterEventDispatcher implements Actor<ClusterEvent> {
     @Autowired
     private EventBus eventBus;
 
@@ -23,17 +20,17 @@ public class InstanceEventDispatcher implements Actor<InstanceEvent> {
 
     @PostConstruct
     public void setup() {
-        eventBus.register(InstanceEvent.class, this);
+        eventBus.register(ClusterEvent.class, this);
     }
 
     @Override
-    public void handle(final InstanceEvent event) {
-        final Instance instance = context.getInstances().get(event.getInstanceID());
+    public void handle(final ClusterEvent event) {
+        final Cluster cluster = context.getClusters().get(event.getClusterID());
 
-        if (instance == null) {
-            log.warn("instance(id: {}) not exists", event.getInstanceID());
+        if (cluster == null) {
+            log.warn("cluster(id: {}) not exists", event.getClusterID());
         } else {
-            instance.handle(event);
+            cluster.handle(event);
         }
     }
 }

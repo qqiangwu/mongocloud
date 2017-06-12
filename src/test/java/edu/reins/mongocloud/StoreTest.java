@@ -1,6 +1,5 @@
 package edu.reins.mongocloud;
 
-import edu.reins.mongocloud.impl.StoreImpl;
 import lombok.Value;
 import lombok.val;
 import org.apache.mesos.state.InMemoryState;
