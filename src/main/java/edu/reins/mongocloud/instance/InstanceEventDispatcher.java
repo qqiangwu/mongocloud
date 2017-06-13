@@ -31,7 +31,7 @@ public class InstanceEventDispatcher implements Actor<InstanceEvent> {
         final Instance instance = context.getInstances().get(event.getInstanceID());
 
         if (instance == null) {
-            log.warn("instance(id: {}) not exists", event.getInstanceID());
+            LOG.warn("instance(id: {}) not exists", event.getInstanceID());
         } else {
             instance.handle(event);
         }

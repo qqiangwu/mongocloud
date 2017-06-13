@@ -10,6 +10,7 @@ import edu.reins.mongocloud.cluster.ShardedCluster;
 import edu.reins.mongocloud.clustermanager.exception.ClusterIDConflictException;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
 
     private final StateMachineImpl stateMachine;
 
+    @Nothrow
     public ClusterManagerImpl() {
         val builder = StateMachineBuilderFactory.create(
                 StateMachineImpl.class,
@@ -52,7 +54,7 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
                 .to(ClusterManagerState.CLOSED)
                 .on(ClusterManagerEventType.DESTROYED);
 
-        stateMachine = builder.newStateMachine(ClusterManagerState.START, this);
+        stateMachine = builder.newStateMachine(ClusterManagerState.START);
     }
 
     @PostConstruct
@@ -60,16 +62,23 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
         eventBus.register(ClusterManagerEvent.class, this);
     }
 
+    @Nothrow
     @Override
     public void handle(final ClusterManagerEvent event) {
         stateMachine.fire(event.getType());
     }
 
+    @Nothrow
     @Override
     public boolean isInitialized() {
         return stateMachine.getCurrentState().equals(ClusterManagerState.RUNNING);
     }
 
+    /**
+     *
+     * @throws ClusterIDConflictException
+     * @throws IllegalStateException        if clusterManager is not initialized
+     */
     @Override
     public void createCluster(final ClusterDefinition clusterDefinition) throws ClusterIDConflictException {
         ensureInitialized();
@@ -93,31 +102,29 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
     @ContextInsensitive
     private static class StateMachineImpl extends
             AbstractStateMachine<StateMachineImpl, ClusterManagerState, ClusterManagerEventType, Void> {
-        private final ClusterManagerImpl cluster;
-
-        public StateMachineImpl(final ClusterManagerImpl cluster) {
-            this.cluster = cluster;
-        }
-
+        @Nothrow
         protected void transitFromStartToRunningOnSetup(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
-            log.info("cluster starts to running");
+            LOG.info("cluster starts to running");
         }
 
+        @Nothrow
         protected void transitFromAnyToClosedOnFailover(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
-            log.info("cluster is closed");
+            LOG.info("cluster is closed");
 
             shutdown();
         }
 
+        @Nothrow
         protected void transitFromAnyToClosedOnDestroyed(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
-            log.info("cluster is destroyed");
+            LOG.info("cluster is destroyed");
 
             shutdown();
         }
 
+        @Nothrow
         private void shutdown() {
             System.exit(0);
         }

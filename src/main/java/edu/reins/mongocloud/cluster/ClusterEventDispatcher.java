@@ -3,6 +3,7 @@ package edu.reins.mongocloud.cluster;
 import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,12 +24,13 @@ public class ClusterEventDispatcher implements Actor<ClusterEvent> {
         eventBus.register(ClusterEvent.class, this);
     }
 
+    @Nothrow
     @Override
     public void handle(final ClusterEvent event) {
         final Cluster cluster = context.getClusters().get(event.getClusterID());
 
         if (cluster == null) {
-            log.warn("cluster(id: {}) not exists", event.getClusterID());
+            LOG.warn("cluster(id: {}) not exists", event.getClusterID());
         } else {
             cluster.handle(event);
         }

@@ -9,12 +9,15 @@ import edu.reins.mongocloud.instance.InstanceImpl;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
+import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
 import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +34,7 @@ public class RouterCluster implements Cluster {
     private final List<Instance> instances;
     private final StateMachineImpl stateMachine;
 
+    @Nothrow
     public RouterCluster(final Cluster parent, final Context context) {
         this.id = new ClusterID(String.format("%s::router", parent.getID().getValue()));
         this.parent = parent.getID();
@@ -39,6 +43,7 @@ public class RouterCluster implements Cluster {
         this.stateMachine = buildStateMachine();
     }
 
+    @Nothrow
     private StateMachineImpl buildStateMachine() {
         val builder = StateMachineBuilderFactory
                 .create(StateMachineImpl.class, ClusterState.class, ClusterEventType.class, ClusterEvent.class);
@@ -59,24 +64,36 @@ public class RouterCluster implements Cluster {
                 .when(Conditions.allInstancesRunning(instances));
 
         // done
-        return builder.newStateMachine(ClusterState.NEW);
+        return builder.newStateMachine(ClusterState.NEW, this. context);
     }
 
+    @Nothrow
     @Override
     public ClusterID getID() {
         return id;
     }
 
+    @Nothrow
     @Override
     public ClusterState getState() {
         return stateMachine.getCurrentState();
     }
 
+    @Nothrow
+    @Override
+    public List<Instance> getInstances() {
+        return instances;
+    }
+
+    @Nothrow
     @Override
     public void handle(final ClusterEvent event) {
         stateMachine.fire(event.getType(), event);
     }
 
+    /**
+     * @throws IllegalStateException    if the cluster is not running
+     */
     public RouterClusterMeta getMeta() {
         if (!getState().equals(ClusterState.RUNNING)) {
             throw new IllegalStateException("Router cluster is not running");
@@ -90,50 +107,57 @@ public class RouterCluster implements Cluster {
         return new RouterClusterMeta(members);
     }
 
-    private class StateMachineImpl extends
+    @AllArgsConstructor
+    private static class StateMachineImpl extends
             AbstractStateMachine<StateMachineImpl, ClusterState, ClusterEventType, ClusterEvent> {
+        private final RouterCluster self;
+        private final Context context;
 
+        @Nothrow
         protected void transmitFromNewToSubmittedOnInit(
                 ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            log.info("entrySubmitted: register instances and send INIT");
+            LOG.info("entrySubmitted: register instances and send INIT");
 
             final EventBus eventBus = context.getEventBus();
             final Map<InstanceID, Instance> instanceContext = context.getInstances();
             final ConfigClusterMeta meta = c.getPayload(ConfigClusterMeta.class);
 
-            instances.addAll(createInstances(meta));
-            instances.forEach(instance -> {
+            self.instances.addAll(createInstances(meta));
+            self.instances.forEach(instance -> {
                 instanceContext.put(instance.getID(), instance);
 
                 eventBus.post(new InstanceEvent(InstanceEventType.INIT, instance.getID()));
             });
         }
 
+        @Nothrow
         private List<Instance> createInstances(final ConfigClusterMeta meta) {
-            final InstanceDefinition routerDefinition = createInstanceDefinition(meta);
+            final InstanceDefinition routerDefinition = createInstanceDefinition();
+            final Map<String, String> env = Collections.singletonMap(Clusters.ENV_CONFIG, meta.toID());
 
             return IntStream.range(0, 3)
-                    .mapToObj(i -> new InstanceImpl(context, RouterCluster.this, i, routerDefinition))
+                    .mapToObj(i -> new InstanceImpl(context, self, i, routerDefinition, env))
                     .collect(Collectors.toList());
         }
 
-        private InstanceDefinition createInstanceDefinition(final ConfigClusterMeta configClusterMeta) {
-            val definition = context.getEnv().getProperty(ROUTER_SERVER_DEFINITION, InstanceDefinition.class);
-            val argsResolved = definition.getArgs().replace(CONFIG_SERVER_PLACEHOLDER, configClusterMeta.toID());
-
-            return definition.withArgs(argsResolved);
+        @Nothrow
+        private InstanceDefinition createInstanceDefinition() {
+            return context.getEnv().getProperty(ROUTER_SERVER_DEFINITION, InstanceDefinition.class);
         }
 
+        @Nothrow
         protected void transitFromSubmittedToRunning(
                 ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            log.info("transitFromSubmittedToRunning: launch finished");
+            LOG.info("transitFromSubmittedToRunning: launch finished");
 
-            context.getEventBus().post(new ClusterEvent(parent, ClusterEventType.CHILD_RUNNING, getID()));
+            context.getEventBus()
+                    .post(new ClusterEvent(self.parent, ClusterEventType.CHILD_RUNNING, self.getID()));
         }
 
+        @Nothrow
         protected void onChildRunning(
                 ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            log.info("onChildRunning(instanceID: {})", c.getPayload(InstanceID.class));
+            LOG.info("onChildRunning(instanceID: {})", c.getPayload(InstanceID.class));
         }
     }
 }

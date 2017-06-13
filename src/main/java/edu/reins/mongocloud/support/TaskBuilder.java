@@ -1,7 +1,9 @@
 package edu.reins.mongocloud.support;
 
+import edu.reins.mongocloud.instance.Instances;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.val;
 import org.apache.mesos.Protos;
 
@@ -14,18 +16,21 @@ public class TaskBuilder {
     private InstanceLaunchRequest instanceRequest;
     private InstanceDefinition definition;
 
+    @Nothrow
     public TaskBuilder setDockerVolume(final String volume) {
         this.volume = volume;
 
         return this;
     }
 
+    @Nothrow
     public TaskBuilder setOffer(final Protos.Offer offer) {
         this.offer = offer;
 
         return this;
     }
 
+    @Nothrow
     public TaskBuilder setInstanceRequest(final InstanceLaunchRequest instanceRequest) {
         this.instanceRequest = instanceRequest;
         this.definition = instanceRequest.getDefinition();
@@ -33,6 +38,9 @@ public class TaskBuilder {
         return this;
     }
 
+    /**
+     * @throws NullPointerException if any fields are not provided
+     */
     public Protos.TaskInfo build() {
         Objects.requireNonNull(volume);
         Objects.requireNonNull(offer);
@@ -41,6 +49,7 @@ public class TaskBuilder {
         return buildTask();
     }
 
+    @Nothrow
     private Protos.TaskInfo buildTask() {
         val portMapping = preparePortMapping();
         val containerInfo = buildContainer(portMapping);
@@ -59,6 +68,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private Protos.ContainerInfo.DockerInfo.PortMapping preparePortMapping() {
         val containerPort = getContainerPort();
         val hostPort = new ResourceDescriptor(offer.getResourcesList()).getPorts().get(0);
@@ -70,6 +80,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private int getContainerPort() {
         switch (instanceRequest.getDefinition().getType()) {
             case CONFIG: return 27019;
@@ -80,15 +91,17 @@ public class TaskBuilder {
         throw new AssertionError("Bad instanceRequest type");
     }
 
+    @Nothrow
     private Protos.CommandInfo buildCommand() {
         val args = instanceRequest.getDefinition().getArgs().split(" ");
 
         return Protos.CommandInfo.newBuilder()
-                .setShell(false)
+                .setShell(true)
                 .addAllArguments(Arrays.asList(args))
                 .build();
     }
 
+    @Nothrow
     private Protos.Resource getDiskRequirement() {
         return Protos.Resource.newBuilder()
                 .setName("disk")
@@ -97,6 +110,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private Protos.Resource getCPURequirement() {
         return Protos.Resource.newBuilder()
                 .setName("cpus")
@@ -105,6 +119,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private Protos.Resource getMemRequirement() {
         return Protos.Resource.newBuilder()
                 .setName("mem")
@@ -113,6 +128,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private Protos.Resource getPortMapping(final Protos.ContainerInfo.DockerInfo.PortMapping mapping) {
         val port = mapping.getHostPort();
         val range = Protos.Value.Ranges.newBuilder()
@@ -125,6 +141,7 @@ public class TaskBuilder {
                 .build();
     }
 
+    @Nothrow
     private Protos.ContainerInfo.Builder buildContainer(final Protos.ContainerInfo.DockerInfo.PortMapping portMapping) {
         val docker = Protos.ContainerInfo.DockerInfo.newBuilder()
                 .setImage(definition.getImage())

@@ -3,9 +3,6 @@ package edu.reins.mongocloud.instance;
 import edu.reins.mongocloud.impl.AbstractEvent;
 import edu.reins.mongocloud.model.InstanceID;
 
-/**
- * @author wuqq
- */
 public final class InstanceEvent extends AbstractEvent<InstanceEventType> {
     private final InstanceID instanceID;
 

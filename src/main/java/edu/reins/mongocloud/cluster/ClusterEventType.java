@@ -5,5 +5,11 @@ public enum ClusterEventType {
     INIT,
 
     // 子集群初始化完成
-    CHILD_RUNNING
+    CHILD_RUNNING,
+
+    // RS构建完成
+    RS_INITED,
+
+    // 遇到某种错误
+    FAIL
 }

@@ -9,8 +9,12 @@ public enum ClusterState {
 
     SUBMITTED,
 
+    INIT_RS,
+
     RUNNING,
 
     CLEANUP,
-    DIED
+    DIED,
+
+    FAILED
 }

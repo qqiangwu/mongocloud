@@ -1,6 +1,7 @@
 package edu.reins.mongocloud.resource;
 
 import edu.reins.mongocloud.MongoCloudInitializer;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mesos.MesosSchedulerDriver;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,18 +20,19 @@ public class DriverInitializer implements MongoCloudInitializer {
     MesosSchedulerDriver schedulerDriver;
 
     @Override
+    @Nothrow
     public void initialize(final ApplicationContext context) {
-        log.info("initDriver");
+        LOG.info("initDriver");
 
         executor.execute(() -> {
             Thread.currentThread().setName("MesosDriver");
 
-            log.info("launchDriver");
+            LOG.info("launchDriver");
 
             schedulerDriver.run();
             schedulerDriver.stop(true);
 
-            log.info("driverStops");
+            LOG.info("driverStops");
         });
     }
 }

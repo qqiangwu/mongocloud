@@ -8,6 +8,7 @@ import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceID;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -33,31 +34,37 @@ public class ContextImpl implements Context {
 
     private Map<ClusterID, Cluster> clusters = new ConcurrentHashMap<>();
 
+    @Nothrow
     @Override
     public EventBus getEventBus() {
         return eventBus;
     }
 
+    @Nothrow
     @Override
     public Map<InstanceID, Instance> getInstances() {
         return instances;
     }
 
+    @Nothrow
     @Override
     public Map<ClusterID, Cluster> getClusters() {
         return clusters;
     }
 
+    @Nothrow
     @Override
     public ClusterManager getClusterManager() {
         return clusterManager;
     }
 
+    @Nothrow
     @Override
     public ResourceProvider getResourceProvider() {
         return resourceProvider;
     }
 
+    @Nothrow
     @Override
     public Environment getEnv() {
         return environment;

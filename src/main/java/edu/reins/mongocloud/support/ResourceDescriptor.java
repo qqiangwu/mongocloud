@@ -1,5 +1,6 @@
 package edu.reins.mongocloud.support;
 
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.val;
@@ -19,6 +20,7 @@ public final class ResourceDescriptor {
     private final long disk;
     private final List<Integer> ports = new ArrayList<>();
 
+    @Nothrow
     public ResourceDescriptor(final List<Protos.Resource> resources) {
         val resourceMap = resources
                 .stream()

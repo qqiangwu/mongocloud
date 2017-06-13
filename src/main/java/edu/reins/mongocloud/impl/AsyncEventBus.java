@@ -4,6 +4,7 @@ import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.Event;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,43 +32,51 @@ public class AsyncEventBus implements EventBus {
         executorService.submit(new PipelineProcessor());
     }
 
+    @Nothrow
     @Override
     public <E extends Event> void register(final Class<E> eventType, final Actor<E> actor) {
         eventDispatchers.put(eventType, actor);
     }
 
+    @Nothrow
     @Override
     public void post(final Event event) {
         try {
             eventQueue.put(event);
         } catch (InterruptedException e) {
-            log.info("eventBus post interrupted");
+            LOG.info("eventBus post interrupted");
         }
     }
 
     private class PipelineProcessor implements Runnable {
+        @Nothrow
         @Override
         public void run() {
+            LOG.info("started");
+
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     final Event event = eventQueue.take();
 
                     handle(event);
                 } catch (InterruptedException e) {
-                    log.info("pipelineProcessor interrupted");
+                    LOG.info("pipelineProcessor interrupted");
                     return;
                 } catch (RuntimeException e) {
-                    log.warn("unexpected exception(msg: {})", e.getMessage(), e);
+                    LOG.warn("unexpected exception(msg: {})", e.getMessage(), e);
                 }
             }
         }
 
+        /**
+         * @throws RuntimeException if receiver fails to handle the event
+         */
         private void handle(final Event event) {
             final Class<? extends Event> eventType = event.getClass();
             final Actor receiver = eventDispatchers.get(eventType);
 
             if (receiver == null) {
-                log.warn("no receiver for event(event: {})", eventType.getSimpleName());
+                LOG.warn("no receiver for event(event: {})", eventType.getSimpleName());
                 return;
             }
 

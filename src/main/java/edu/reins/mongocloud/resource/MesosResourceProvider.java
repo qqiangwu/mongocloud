@@ -5,16 +5,13 @@ import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.ResourceProvider;
 import edu.reins.mongocloud.clustermanager.ClusterManagerEvent;
 import edu.reins.mongocloud.clustermanager.ClusterManagerEventType;
-import edu.reins.mongocloud.instance.Instance;
-import edu.reins.mongocloud.instance.InstanceEvent;
-import edu.reins.mongocloud.instance.InstanceEventType;
-import edu.reins.mongocloud.instance.InstanceHost;
+import edu.reins.mongocloud.instance.*;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
-import edu.reins.mongocloud.support.Instances;
 import edu.reins.mongocloud.support.TaskBuilder;
 import edu.reins.mongocloud.support.TaskMatcher;
 import edu.reins.mongocloud.support.annotation.Ignored;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import edu.reins.mongocloud.support.annotation.SoftState;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -28,8 +25,8 @@ import org.springframework.beans.factory.annotation.Value;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 @Daemon
 @ThreadSafe
@@ -45,31 +42,35 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
     @Autowired
     private EventBus eventBus;
 
-    private Queue<InstanceLaunchRequest> pendingTasks = new ConcurrentLinkedQueue<>();
+    private BlockingQueue<InstanceLaunchRequest> pendingTasks = new ArrayBlockingQueue<>(1024);
 
     @Override
+    @Nothrow
     public void registered(SchedulerDriver schedulerDriver, Protos.FrameworkID frameworkID, Protos.MasterInfo masterInfo) {
-        log.info("register(framework: {}, master: {})", frameworkID.getValue(), masterInfo.getId());
+        LOG.info("register(framework: {}, master: {})", frameworkID.getValue(), masterInfo.getId());
 
         notifyClusterManager(ClusterManagerEventType.SETUP);
     }
 
     // Handling master failover
     @Override
+    @Nothrow
     public void reregistered(SchedulerDriver schedulerDriver, Protos.MasterInfo masterInfo) {
-        log.info("reregistered(master: {})", masterInfo.getId());
+        LOG.info("reregistered(master: {})", masterInfo.getId());
 
         // implicit reconcile
         schedulerDriver.reconcileTasks(Collections.emptySet());
     }
 
     @Ignored
+    @Nothrow
     @Override
     public void offerRescinded(SchedulerDriver schedulerDriver, Protos.OfferID offerID) {
-        log.debug("rescinded(offer: {})", offerID.getValue());
+        LOG.debug("rescinded(offer: {})", offerID.getValue());
     }
 
     @Override
+    @Nothrow
     public void statusUpdate(SchedulerDriver schedulerDriver, Protos.TaskStatus taskStatus) {
         switch (taskStatus.getState()) {
             case TASK_STAGING:
@@ -92,7 +93,7 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
 
             // this state should not be seen
             case TASK_FINISHED:
-                log.warn("badStatus(task: {}): should not see FINISHED", taskStatus.getTaskId());
+                LOG.warn("badStatus(task: {}): should not see FINISHED", taskStatus.getTaskId());
                 // fallthrough
 
                 // task failed due to misconfigured commandInfo
@@ -104,34 +105,39 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
     }
 
     @Ignored
+    @Nothrow
     @Override
     public void frameworkMessage(
             SchedulerDriver schedulerDriver, Protos.ExecutorID executorID, Protos.SlaveID slaveID, byte[] bytes) {
-        log.debug("frameworkMessage(executor: {}, slave: {})", executorID.getValue(), slaveID.getValue());
+        LOG.debug("frameworkMessage(executor: {}, slave: {})", executorID.getValue(), slaveID.getValue());
     }
 
     @Ignored
+    @Nothrow
     @Override
     public void disconnected(SchedulerDriver schedulerDriver) {
-        log.error("disconnected");
+        LOG.error("disconnected");
     }
 
     @Ignored
+    @Nothrow
     @Override
     public void slaveLost(SchedulerDriver schedulerDriver, Protos.SlaveID slaveID) {
-        log.info("slaveLost(slave: {})", slaveID.getValue());
+        LOG.info("slaveLost(slave: {})", slaveID.getValue());
     }
 
     @Ignored
+    @Nothrow
     @Override
     public void executorLost(
             SchedulerDriver schedulerDriver, Protos.ExecutorID executorID, Protos.SlaveID slaveID, int i) {
-        log.info("executorLost(executor: {}, slave: {})", executorID.getValue(), slaveID.getValue());
+        LOG.info("executorLost(executor: {}, slave: {})", executorID.getValue(), slaveID.getValue());
     }
 
     private static final String FRAMEWORK_REMOVED = "Framework has been removed";
     private static final String FRAMEWORK_FAILOVER = "Framework failover";
 
+    @Nothrow
     @Override
     public void error(SchedulerDriver schedulerDriver, String s) {
         switch (s) {
@@ -144,15 +150,17 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
                 break;
 
             default:
-                log.error("error(msg: {})", s);
+                LOG.error("error(msg: {})", s);
                 break;
         }
     }
 
+    @Nothrow
     private void notifyClusterManager(final ClusterManagerEventType eventType) {
         eventBus.post(new ClusterManagerEvent(eventType));
     }
 
+    @Nothrow
     private void notifyInstance(final Protos.TaskID taskID, final InstanceEventType eventType) {
         final InstanceID instanceID = new InstanceID(taskID.getValue());
 
@@ -160,23 +168,30 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
     }
 
     @Override
+    @Nothrow
     public void launch(final InstanceLaunchRequest request) {
-        pendingTasks.add(request);
+        try {
+            pendingTasks.put(request);
+        } catch (InterruptedException e) {
+            LOG.info("launch: operation interrupted");
+        }
     }
 
+    @Nothrow
     @Override
     public void kill(final InstanceID id) {
-        log.info("kill(instanceID: {})", id);
+        LOG.info("kill(instanceID: {})", id);
 
         schedulerDriver.killTask(Instances.toTaskID(id));
     }
 
+    @Nothrow
     @Override
     public void sync(final List<Instance> instances) {
         // TODO
     }
 
-    // FIXME:   use better scheduling algorithms
+    @Nothrow
     @Override
     public void resourceOffers(final SchedulerDriver driver, final List<Offer> offers) {
         for (val offer: offers) {
@@ -187,22 +202,27 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
             }
         }
 
-        log.trace("resourceOffers(pending: {})", pendingTasks.size());
+        LOG.trace("resourceOffers(pending: {})", pendingTasks.size());
     }
 
+    @Nothrow
     private boolean tryLaunch(final Offer offer) {
-        for (int i = 0, len = pendingTasks.size(); i < len; ++i) {
+        while (!pendingTasks.isEmpty()) {
             val task = pendingTasks.poll();
-            val launched = tryLaunchTaskOn(task, offer);
 
-            if (launched) {
-                return true;
+            if (task != null) {
+                val launched = tryLaunchTaskOn(task, offer);
+
+                if (launched) {
+                    return true;
+                }
             }
         }
 
         return false;
     }
 
+    @Nothrow
     private boolean tryLaunchTaskOn(final InstanceLaunchRequest request, final Offer offer) {
         val launchable = TaskMatcher.matches(offer, request.getDefinition());
 
@@ -214,8 +234,9 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         return false;
     }
 
+    @Nothrow
     private void launchOn(final InstanceLaunchRequest request, final Offer offer) {
-        log.debug("> launch(id: {}, slave: {})", request.getInstanceID(), offer.getSlaveId().getValue());
+        LOG.debug("> launch(id: {}, slave: {})", request.getInstanceID(), offer.getSlaveId().getValue());
 
         val taskInfo = new TaskBuilder()
                 .setDockerVolume(dockerVolume)
@@ -231,6 +252,7 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         schedulerDriver.launchTasks(Collections.singletonList(offer.getId()), Collections.singletonList(taskInfo));
     }
 
+    @Nothrow
     private InstanceHost createInstanceHost(final Offer offer, final Protos.TaskInfo taskInfo) {
         final String hostIP = offer.getHostname();
         final Protos.SlaveID slaveID = taskInfo.getSlaveId();

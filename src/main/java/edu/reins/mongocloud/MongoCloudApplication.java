@@ -1,5 +1,6 @@
 package edu.reins.mongocloud;
 
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -21,6 +22,7 @@ public class MongoCloudApplication {
 		applyInitializers(context);
 	}
 
+	@Nothrow
 	private static void applyInitializers(final ApplicationContext context) {
 	    context.getBeansOfType(MongoCloudInitializer.class).values()
                 .forEach(initializer -> initializer.initialize(context));

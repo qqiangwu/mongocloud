@@ -9,11 +9,13 @@ import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
 import edu.reins.mongocloud.support.Errors;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
 import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -23,18 +25,21 @@ public class InstanceImpl implements Instance {
     private final InstanceID id;
     private final InstanceDefinition definition;
     private final StateMachineImpl stateMachine;
+    private final Map<String, String> env;
     private Optional<InstanceHost> host = Optional.empty();
 
     public InstanceImpl(
             final Context context,
             final Cluster parent,
             final int index,
-            final InstanceDefinition definition) {
+            final InstanceDefinition definition,
+            final Map<String, String> env) {
         this.context = context;
         this.parentID = parent.getID();
         this.id = new InstanceID(String.format("%s-%d", parent.getID().getValue(), index));
         this.definition = definition;
         this.stateMachine = buildStateMachine();
+        this.env = env;
     }
 
     private StateMachineImpl buildStateMachine() {
@@ -56,7 +61,7 @@ public class InstanceImpl implements Instance {
                 .on(InstanceEventType.RUNNING);
 
         // done
-        return builder.newStateMachine(InstanceState.NEW, this);
+        return builder.newStateMachine(InstanceState.NEW, this, context);
     }
 
     @Override
@@ -89,31 +94,38 @@ public class InstanceImpl implements Instance {
         return host.orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
     }
 
-    private class StateMachineImpl extends
+    @AllArgsConstructor
+    private static class StateMachineImpl extends
             AbstractStateMachine<StateMachineImpl, InstanceState, InstanceEventType, InstanceEvent> {
+        private final InstanceImpl self;
+        private final Context context;
+
         protected void transmitFromNewToSubmittedOnInit(
                 InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
-            log.info("onInit(instance: {}): submit to the scheduler", getID());
+            LOG.info("onInit(instance: {}): submit to the scheduler", self.getID());
 
-            context.getResourceProvider().launch(new InstanceLaunchRequest(getID(), getDefinition()));
+            context.getResourceProvider()
+                    .launch(new InstanceLaunchRequest(self.getID(), self.getDefinition(), self.env));
         }
 
         protected void transmitFromSubmittedToStagingOnLaunched(
                 InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
-            log.info("onLaunched(instance: {})", getID());
+            LOG.info("onLaunched(instance: {})", self.getID());
 
             final InstanceHost host = ctx.getPayload(InstanceHost.class);
 
-            InstanceImpl.this.host = Optional.of(host);
+            self.host = Optional.of(host);
 
-            log.info("> onLaunched(instance: {}, host: {})", getID(), host);
+            LOG.info("> onLaunched(instance: {}, host: {})", self.getID(), host);
         }
 
         protected void transmitFromStagingToRunningOnRunning(
                 InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
-            log.info("onRunning(instance: {}, parent: {}): notify parent", getID(), parentID);
+            LOG.info("onRunning(instance: {}, parent: {}): notify parent",
+                    self.getID(), self.parentID);
 
-            context.getEventBus().post(new ClusterEvent(parentID, ClusterEventType.CHILD_RUNNING, getID()));
+            context.getEventBus()
+                    .post(new ClusterEvent(self.parentID, ClusterEventType.CHILD_RUNNING, self.getID()));
         }
     }
 }

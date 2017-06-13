@@ -35,12 +35,12 @@ public class MesosConfiguration {
             throw new InitializationException("LIBPROCESS_IP cannot be null");
         }
 
-        log.info("setup(ip: {}, port: {})", ip, webPort);
+        LOG.info("setup(ip: {}, port: {})", ip, webPort);
     }
 
     @Bean
     public SchedulerDriver schedulerDriver(final Scheduler scheduler, @Value("${zk.mesos}") final String mesosMaster) {
-        log.info("initDriver(scheduler: {}, zk: {})", scheduler, mesosMaster);
+        LOG.info("initDriver(scheduler: {}, zk: {})", scheduler, mesosMaster);
 
         val frameworkInfo = FrameworkInfo.newBuilder()
                 .setFailoverTimeout(Duration.ofMinutes(failoverMinutes).get(ChronoUnit.SECONDS))
