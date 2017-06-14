@@ -2,6 +2,8 @@ package edu.reins.mongocloud.cluster;
 
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.cluster.fsm.ClusterAction;
+import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
 import edu.reins.mongocloud.cluster.mongo.MongoEvent;
 import edu.reins.mongocloud.cluster.mongo.MongoEventType;
 import edu.reins.mongocloud.cluster.mongo.RsDefinition;
@@ -13,11 +15,8 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ReplicaCluster implements Cluster {
     private final ClusterID parent;
     private final Context context;
     private final List<Instance> instances;
-    private final StateMachineImpl stateMachine;
+    private final ClusterStateMachine stateMachine;
     private Optional<RouterClusterMeta> routerClusterMeta = Optional.empty();
 
     @Nothrow
@@ -53,38 +52,37 @@ public class ReplicaCluster implements Cluster {
     }
 
     @Nothrow
-    private StateMachineImpl buildStateMachine() {
-        val builder = StateMachineBuilderFactory
-                .create(StateMachineImpl.class, ClusterState.class, ClusterEventType.class, ClusterEvent.class);
+    private ClusterStateMachine buildStateMachine() {
+        val builder = ClusterStateMachine.create();
 
         // from NEW to INIT: launch all instances
         builder.transition()
                 .from(ClusterState.NEW).to(ClusterState.SUBMITTED)
-                .on(ClusterEventType.INIT);
+                .on(ClusterEventType.INIT)
+                .perform(new OnInit());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.SUBMITTED)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.instancesNotFullyRunning(instances));
-
-        builder.transition()
-                .from(ClusterState.SUBMITTED).to(ClusterState.RUNNING)
-                .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances));
+                .when(Conditions.instancesNotFullyRunning(instances))
+                .perform(new OnChildReady());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.INIT_RS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances));
+                .when(Conditions.allInstancesRunning(instances))
+                .perform(new OnChildrenRunning());
 
         // from INIT_RS: wait all instances to join the replica set
         builder.transition()
                 .from(ClusterState.INIT_RS).to(ClusterState.RUNNING)
-                .on(ClusterEventType.RS_INITED);
+                .on(ClusterEventType.RS_INITED)
+                .perform(new OnRsInited());
 
         builder.transition()
                 .from(ClusterState.INIT_RS).to(ClusterState.FAILED)
-                .on(ClusterEventType.FAIL);
+                .on(ClusterEventType.FAIL)
+                .perform(new OnFailed());
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -114,58 +112,61 @@ public class ReplicaCluster implements Cluster {
         stateMachine.fire(event.getType(), event);
     }
 
-    @AllArgsConstructor
-    private static class StateMachineImpl extends
-            AbstractStateMachine<StateMachineImpl, ClusterState, ClusterEventType, ClusterEvent> {
-        private final ReplicaCluster self;
-        private final Context context;
-
+    private final class OnInit extends ClusterAction {
         @Nothrow
-        protected void transmitFromNewToSubmittedOnInit(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("entrySubmitted: register instances and send INIT");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onInit(cluster: {}): register instances and send INIT", getID());
 
             final EventBus eventBus = context.getEventBus();
             final Map<InstanceID, Instance> instanceContext = context.getInstances();
 
-            self.routerClusterMeta = Optional.of(c.getPayload(RouterClusterMeta.class));
+            routerClusterMeta = Optional.of(event.getPayload(RouterClusterMeta.class));
 
-            self.instances.forEach(instance -> {
+            instances.forEach(instance -> {
                 instanceContext.put(instance.getID(), instance);
                 eventBus.post(new InstanceEvent(InstanceEventType.INIT, instance.getID()));
             });
         }
+    }
 
+    private final class OnChildReady extends ClusterAction {
         @Nothrow
-        protected void transitFromSubmittedToInitRs(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("transitFromSubmittedToInitRs(id: {}): launch finished", self.getID());
-
-            final RsDefinition rs = RsDefinition.from(self);
-
-            context.getEventBus().post(new MongoEvent(MongoEventType.INIT_RS, self.getID(), rs));
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildReady(cluster: {}, child: {})", getID(), event.getPayload(InstanceID.class));
         }
+    }
 
+    private final class OnChildrenRunning extends ClusterAction {
         @Nothrow
-        protected void transitFromInitRsToRunning(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("transitFromInitRsToRunning(id: {}): launch finished", self.getID());
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildrenRunning(cluster: {}): launch finished, init rs", getID());
+
+            final RsDefinition rs = RsDefinition.from(ReplicaCluster.this);
+
+            context.getEventBus().post(new MongoEvent(MongoEventType.INIT_RS, getID(), rs));
+        }
+    }
+
+    private final class OnRsInited extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onRsInited(cluster: {}): launch finished", getID());
 
             context.getEventBus()
-                    .post(new ClusterEvent(self.parent, ClusterEventType.CHILD_RUNNING, self.getID()));
+                    .post(new ClusterEvent(parent, ClusterEventType.CHILD_RUNNING, getID()));
         }
+    }
 
+    // TODO     notify parent
+    private final class OnFailed extends ClusterAction {
         @Nothrow
-        protected void transitFromAnyToFailed(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("transitFromAnyToFailed(id: {}, from: {}, msg: {})",
-                    self.getID(), from, c.getPayload(String.class));
-        }
-
-        @Nothrow
-        protected void onChildRunning(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("onChildRunning(instanceID: {})", c.getPayload(InstanceID.class));
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onFailed(id: {}, msg: {})", getID(), event.getPayload(String.class));
         }
     }
 }

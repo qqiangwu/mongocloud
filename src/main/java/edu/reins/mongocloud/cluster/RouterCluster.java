@@ -1,7 +1,8 @@
 package edu.reins.mongocloud.cluster;
 
 import edu.reins.mongocloud.Context;
-import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.cluster.fsm.ClusterAction;
+import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceEvent;
 import edu.reins.mongocloud.instance.InstanceEventType;
@@ -10,16 +11,10 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -32,7 +27,7 @@ public class RouterCluster implements Cluster {
     private final ClusterID parent;
     private final Context context;
     private final List<Instance> instances;
-    private final StateMachineImpl stateMachine;
+    private final ClusterStateMachine stateMachine;
 
     @Nothrow
     public RouterCluster(final Cluster parent, final Context context) {
@@ -44,24 +39,26 @@ public class RouterCluster implements Cluster {
     }
 
     @Nothrow
-    private StateMachineImpl buildStateMachine() {
-        val builder = StateMachineBuilderFactory
-                .create(StateMachineImpl.class, ClusterState.class, ClusterEventType.class, ClusterEvent.class);
+    private ClusterStateMachine buildStateMachine() {
+        val builder = ClusterStateMachine.create();
 
-        // from NEW to INIT: launch all routers
+        // init cluster: create and launch router instances
         builder.transition()
                 .from(ClusterState.NEW).to(ClusterState.SUBMITTED)
-                .on(ClusterEventType.INIT);
+                .on(ClusterEventType.INIT)
+                .perform(new OnInit());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.SUBMITTED)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.instancesNotFullyRunning(instances));
+                .when(Conditions.instancesNotFullyRunning(instances))
+                .perform(new OnNewChildReady());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances));
+                .when(Conditions.allInstancesRunning(instances))
+                .perform(Arrays.asList(new OnNewChildReady(), new OnRunning()));
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this. context);
@@ -107,57 +104,64 @@ public class RouterCluster implements Cluster {
         return new RouterClusterMeta(members);
     }
 
-    @AllArgsConstructor
-    private static class StateMachineImpl extends
-            AbstractStateMachine<StateMachineImpl, ClusterState, ClusterEventType, ClusterEvent> {
-        private final RouterCluster self;
-        private final Context context;
+    private final class OnInit extends ClusterAction {
 
-        @Nothrow
-        protected void transmitFromNewToSubmittedOnInit(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("entrySubmitted: register instances and send INIT");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onInit(cluster: {}): register instances and send INIT", getID());
 
-            final EventBus eventBus = context.getEventBus();
-            final Map<InstanceID, Instance> instanceContext = context.getInstances();
-            final ConfigClusterMeta meta = c.getPayload(ConfigClusterMeta.class);
+            final ConfigClusterMeta meta = event.getPayload(ConfigClusterMeta.class);
 
-            self.instances.addAll(createInstances(meta));
-            self.instances.forEach(instance -> {
-                instanceContext.put(instance.getID(), instance);
-
-                eventBus.post(new InstanceEvent(InstanceEventType.INIT, instance.getID()));
-            });
+            createInstances(meta);
+            registerInstances();
+            initInstances();
         }
 
         @Nothrow
-        private List<Instance> createInstances(final ConfigClusterMeta meta) {
+        private void createInstances(final ConfigClusterMeta meta) {
             final InstanceDefinition routerDefinition = createInstanceDefinition();
             final Map<String, String> env = Collections.singletonMap(Clusters.ENV_CONFIG, meta.toID());
 
-            return IntStream.range(0, 3)
-                    .mapToObj(i -> new InstanceImpl(context, self, i, routerDefinition, env))
-                    .collect(Collectors.toList());
+            IntStream.range(0, 3)
+                    .mapToObj(i -> new InstanceImpl(context, RouterCluster.this, i, routerDefinition, env))
+                    .forEach(instances::add);
+        }
+
+        @Nothrow
+        private void registerInstances() {
+            instances.forEach(instance -> context.getInstances().put(instance.getID(), instance));
+        }
+
+        @Nothrow
+        private void initInstances() {
+            instances.forEach(instance ->
+                    context.getEventBus().post(new InstanceEvent(InstanceEventType.INIT, instance.getID())));
         }
 
         @Nothrow
         private InstanceDefinition createInstanceDefinition() {
             return context.getEnv().getProperty(ROUTER_SERVER_DEFINITION, InstanceDefinition.class);
         }
+    }
 
+    private final class OnNewChildReady extends ClusterAction {
         @Nothrow
-        protected void transitFromSubmittedToRunning(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("transitFromSubmittedToRunning: launch finished");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onNewChildReady(cluster: {}, instanceID: {})",
+                    getID(), event.getPayload(InstanceID.class));
+        }
+    }
+
+    private final class OnRunning extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onRunning(cluster: {}, instance: {}): launch finished",
+                    getID(), event.getPayload(InstanceID.class));
 
             context.getEventBus()
-                    .post(new ClusterEvent(self.parent, ClusterEventType.CHILD_RUNNING, self.getID()));
-        }
-
-        @Nothrow
-        protected void onChildRunning(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent c) {
-            LOG.info("onChildRunning(instanceID: {})", c.getPayload(InstanceID.class));
+                    .post(new ClusterEvent(parent, ClusterEventType.CHILD_RUNNING, getID()));
         }
     }
 }

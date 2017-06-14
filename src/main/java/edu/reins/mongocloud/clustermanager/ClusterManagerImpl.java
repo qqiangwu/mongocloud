@@ -103,13 +103,13 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
     private static class StateMachineImpl extends
             AbstractStateMachine<StateMachineImpl, ClusterManagerState, ClusterManagerEventType, Void> {
         @Nothrow
-        protected void transitFromStartToRunningOnSetup(
+        protected void onSETUP(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
             LOG.info("cluster starts to running");
         }
 
         @Nothrow
-        protected void transitFromAnyToClosedOnFailover(
+        protected void onFAILOVER(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
             LOG.info("cluster is closed");
 
@@ -117,7 +117,7 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
         }
 
         @Nothrow
-        protected void transitFromAnyToClosedOnDestroyed(
+        protected void onDESTROYED(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
             LOG.info("cluster is destroyed");
 

@@ -4,16 +4,16 @@ import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.cluster.ClusterEvent;
 import edu.reins.mongocloud.cluster.ClusterEventType;
+import edu.reins.mongocloud.instance.fsm.InstanceAction;
+import edu.reins.mongocloud.instance.fsm.InstanceStateMachine;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
 import edu.reins.mongocloud.support.Errors;
-import lombok.AllArgsConstructor;
+import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +24,7 @@ public class InstanceImpl implements Instance {
     private final ClusterID parentID;
     private final InstanceID id;
     private final InstanceDefinition definition;
-    private final StateMachineImpl stateMachine;
+    private final InstanceStateMachine stateMachine;
     private final Map<String, String> env;
     private Optional<InstanceHost> host = Optional.empty();
 
@@ -42,23 +42,26 @@ public class InstanceImpl implements Instance {
         this.env = env;
     }
 
-    private StateMachineImpl buildStateMachine() {
-        val builder = StateMachineBuilderFactory
-                .create(StateMachineImpl.class, InstanceState.class, InstanceEventType.class, InstanceEvent.class);
+    private InstanceStateMachine buildStateMachine() {
+        val builder = InstanceStateMachine.create();
 
-        // from NEW: start init
+        // on init
         builder.transition()
                 .from(InstanceState.NEW).to(InstanceState.SUBMITTED)
-                .on(InstanceEventType.INIT);
+                .on(InstanceEventType.INIT)
+                .perform(new OnInit());
 
-        // from SUBMITTED
+        // on launching finished
         builder.transition()
                 .from(InstanceState.SUBMITTED).to(InstanceState.STAGING)
-                .on(InstanceEventType.LAUNCHED);
+                .on(InstanceEventType.LAUNCHED)
+                .perform(new OnLaunched());
 
+        // on running by scheduler
         builder.transition()
                 .from(InstanceState.STAGING).to(InstanceState.RUNNING)
-                .on(InstanceEventType.RUNNING);
+                .on(InstanceEventType.RUNNING)
+                .perform(new OnRunning());
 
         // done
         return builder.newStateMachine(InstanceState.NEW, this, context);
@@ -93,39 +96,41 @@ public class InstanceImpl implements Instance {
     public InstanceHost getHost() {
         return host.orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
     }
-
-    @AllArgsConstructor
-    private static class StateMachineImpl extends
-            AbstractStateMachine<StateMachineImpl, InstanceState, InstanceEventType, InstanceEvent> {
-        private final InstanceImpl self;
-        private final Context context;
-
-        protected void transmitFromNewToSubmittedOnInit(
-                InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
-            LOG.info("onInit(instance: {}): submit to the scheduler", self.getID());
+    
+    private final class OnInit extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            LOG.info("doInit(instance: {}): submit to the scheduler", getID());
 
             context.getResourceProvider()
-                    .launch(new InstanceLaunchRequest(self.getID(), self.getDefinition(), self.env));
+                    .launch(new InstanceLaunchRequest(getID(), getDefinition(), env));
         }
+    }
+    
+    private final class OnLaunched extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            LOG.info("onLaunched(instance: {})", getID());
 
-        protected void transmitFromSubmittedToStagingOnLaunched(
-                InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
-            LOG.info("onLaunched(instance: {})", self.getID());
+            final InstanceHost instanceHost = event.getPayload(InstanceHost.class);
 
-            final InstanceHost host = ctx.getPayload(InstanceHost.class);
+            host = Optional.of(instanceHost);
 
-            self.host = Optional.of(host);
-
-            LOG.info("> onLaunched(instance: {}, host: {})", self.getID(), host);
+            LOG.info("> onLaunched(instance: {}, host: {})", getID(), host);
         }
-
-        protected void transmitFromStagingToRunningOnRunning(
-                InstanceState from, InstanceState to, InstanceEventType event, InstanceEvent ctx) {
+    }
+    
+    private final class OnRunning extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
             LOG.info("onRunning(instance: {}, parent: {}): notify parent",
-                    self.getID(), self.parentID);
+                    getID(), parentID);
 
             context.getEventBus()
-                    .post(new ClusterEvent(self.parentID, ClusterEventType.CHILD_RUNNING, self.getID()));
+                    .post(new ClusterEvent(parentID, ClusterEventType.CHILD_RUNNING, getID()));
         }
     }
 }
