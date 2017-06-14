@@ -1,23 +1,26 @@
 package edu.reins.mongocloud.cluster;
 
 import edu.reins.mongocloud.Context;
+import edu.reins.mongocloud.cluster.fsm.ClusterAction;
+import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+// TODO     添加Submitted状态中config/router/replica的失效问题
+// TODO     添加由Running向Died的转换
+// TODO     从Context中移除Cluster
+// TODO     将Shards加入集群
 @Slf4j
 public class ShardedCluster implements Cluster {
-    private final StateMachineImpl stateMachine;
+    private final ClusterStateMachine stateMachine;
 
     private final Context context;
     private final ClusterID id;
@@ -44,37 +47,41 @@ public class ShardedCluster implements Cluster {
     }
 
     @Nothrow
-    private StateMachineImpl buildStateMachine() {
-        val builder = StateMachineBuilderFactory
-                .create(StateMachineImpl.class, ClusterState.class, ClusterEventType.class, ClusterEvent.class);
+    private ClusterStateMachine buildStateMachine() {
+        val builder = ClusterStateMachine.create();
 
         // from NEW: start init
         builder.transition()
                 .from(ClusterState.NEW).to(ClusterState.WAIT_CONFIG)
-                .on(ClusterEventType.INIT);
+                .on(ClusterEventType.INIT)
+                .perform(new OnInit());
 
         // from WAIT_CONFIG: wait config cluster to be done
         builder.transition()
                 .from(ClusterState.WAIT_CONFIG).to(ClusterState.WAIT_ROUTER)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.eventIsFrom(configCluster));
+                .when(Conditions.eventIsFrom(configCluster))
+                .perform(new OnConfigClusterReady());
 
         // from WAIT_ROUTER: wait router cluster to be done
         builder.transition()
                 .from(ClusterState.WAIT_ROUTER).to(ClusterState.WAIT_SHARDS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.eventIsFrom(routerCluster));
+                .when(Conditions.eventIsFrom(routerCluster))
+                .perform(new OnRouterClusterReady());
 
         // from WAIT_SHARDS: wait all shards to be done
         builder.transition()
                 .from(ClusterState.WAIT_SHARDS).to(ClusterState.WAIT_SHARDS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.shardsNotFullyRunning(shards));
+                .when(Conditions.shardsNotFullyRunning(shards))
+                .perform(new OnChildReady());
 
         builder.transition()
                 .from(ClusterState.WAIT_SHARDS).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allShardsRunning(shards));
+                .when(Conditions.allShardsRunning(shards))
+                .perform(new OnChildReady());
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -106,67 +113,62 @@ public class ShardedCluster implements Cluster {
         stateMachine.fire(event.getType(), event);
     }
 
-    // TODO     添加Submitted状态中config/router/replica的失效问题
-    // TODO     添加由Running向Died的转换
-    // TODO     从Context中移除Cluster
-    @AllArgsConstructor
-    private static class StateMachineImpl extends
-            AbstractStateMachine<StateMachineImpl, ClusterState, ClusterEventType, ClusterEvent> {
-        private final ShardedCluster self;
-        private final Context context;
 
+    private final class OnInit extends ClusterAction {
         @Nothrow
-        protected void onInit(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent ctx) {
-            LOG.info("onInit: register config/router/shards");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onInit(cluster: {}): sharded cluster init", getID());
 
-            context.getClusters().put(self.configCluster.getID(), self.configCluster);
-            context.getClusters().put(self.routerCluster.getID(), self.routerCluster);
+            LOG.info("> onInit(cluster: {}): register config cluster", getID());
+            context.getClusters().put(configCluster.getID(), configCluster);
 
-            self.shards.forEach(shard -> context.getClusters().put(shard.getID(), shard));
+            LOG.info("> onInit(cluster: {}): register router cluster", getID());
+            context.getClusters().put(routerCluster.getID(), routerCluster);
+
+            LOG.info("> onInit(cluster: {}): register shards", getID());
+            shards.forEach(shard -> context.getClusters().put(shard.getID(), shard));
+
+            LOG.info("> onInit(cluster: {}): init config cluster", getID());
+            notifyChild(configCluster, ClusterEventType.INIT);
         }
+    }
 
+    private final class OnConfigClusterReady extends ClusterAction {
         @Nothrow
-        protected void entryWaitConfig(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent ctx) {
-            LOG.info("entryWaitConfig: init config cluster");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onConfigReady(cluster: {}): prepare to init routers", getID());
 
-            notifyChild(self.configCluster, ClusterEventType.INIT);
+            notifyChild(routerCluster, ClusterEventType.INIT, configCluster.getMeta());
         }
+    }
 
+    private final class OnRouterClusterReady extends ClusterAction {
         @Nothrow
-        protected void entryWaitRouter(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent ctx) {
-            LOG.info("entryWaitRouter: init router cluster");
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onRouterReady(cluster: {}): init shards", getID());
 
-            notifyChild(self.routerCluster, ClusterEventType.INIT, self.configCluster.getMeta());
+            shards.forEach(shard -> notifyChild(shard, ClusterEventType.INIT));
         }
+    }
 
+    private final class OnChildReady extends ClusterAction {
         @Nothrow
-        protected void entryWaitShards(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent ctx) {
-            if (from != to) {
-                LOG.info("entryWaitShards");
-
-                self.shards
-                        .forEach(shard -> notifyChild(shard, ClusterEventType.INIT, self.routerCluster.getMeta()));
-            }
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onNewChildReady(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
         }
+    }
 
-        @Nothrow
-        protected void onChildRunning(
-                ClusterState from, ClusterState to, ClusterEventType event, ClusterEvent ctx) {
-            LOG.info("onChildRunning(child: {})", ctx.getPayload(ClusterID.class));
-        }
+    @Nothrow
+    private void notifyChild(final Cluster child, final ClusterEventType eventType) {
+        context.getEventBus().post(new ClusterEvent(child.getID(), eventType));
+    }
 
-        @Nothrow
-        private void notifyChild(final Cluster child, final ClusterEventType eventType) {
-            context.getEventBus().post(new ClusterEvent(child.getID(), eventType));
-        }
-
-        @Nothrow
-        private void notifyChild(final Cluster child, final ClusterEventType eventType, final Object payload) {
-            context.getEventBus().post(new ClusterEvent(child.getID(), eventType, payload));
-        }
+    @Nothrow
+    private void notifyChild(final Cluster child, final ClusterEventType eventType, final Object payload) {
+        context.getEventBus().post(new ClusterEvent(child.getID(), eventType, payload));
     }
 }

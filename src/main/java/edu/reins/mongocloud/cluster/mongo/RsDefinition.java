@@ -2,14 +2,12 @@ package edu.reins.mongocloud.cluster.mongo;
 
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.instance.Instance;
-import edu.reins.mongocloud.instance.InstanceHost;
 import edu.reins.mongocloud.instance.InstanceType;
 import edu.reins.mongocloud.model.ClusterID;
 import lombok.Value;
 import lombok.val;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Value
 public final class RsDefinition {
