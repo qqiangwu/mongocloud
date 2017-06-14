@@ -5,7 +5,7 @@ public enum ClusterManagerEventType {
     SETUP,
     DESTROYED,
     FAILOVER,
+    CLOSE
 
     // Sent by members
-
 }

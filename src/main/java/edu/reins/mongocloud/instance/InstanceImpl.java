@@ -12,6 +12,7 @@ import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
 import edu.reins.mongocloud.support.Errors;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
+@ToString
 public class InstanceImpl implements Instance {
     private final Context context;
     private final ClusterID parentID;

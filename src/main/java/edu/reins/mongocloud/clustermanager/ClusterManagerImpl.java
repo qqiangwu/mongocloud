@@ -54,6 +54,11 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
                 .to(ClusterManagerState.CLOSED)
                 .on(ClusterManagerEventType.DESTROYED);
 
+        builder.transitions()
+                .fromAmong(ClusterManagerState.values())
+                .to(ClusterManagerState.CLOSED)
+                .on(ClusterManagerEventType.CLOSE);
+
         stateMachine = builder.newStateMachine(ClusterManagerState.START);
     }
 
@@ -120,6 +125,14 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
         protected void onDESTROYED(
                 final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
             LOG.info("cluster is destroyed");
+
+            shutdown();
+        }
+
+        @Nothrow
+        protected void onCLOSE(
+                final ClusterManagerState from, final ClusterManagerState to, final ClusterManagerEventType event) {
+            LOG.info("cluster is closed");
 
             shutdown();
         }

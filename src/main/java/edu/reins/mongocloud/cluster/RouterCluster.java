@@ -11,6 +11,7 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
+@ToString
 public class RouterCluster implements Cluster {
     private static final String ROUTER_SERVER_DEFINITION = "instance.router.definition";
     private static final String CONFIG_SERVER_PLACEHOLDER = "$CONFIG";
@@ -140,7 +142,7 @@ public class RouterCluster implements Cluster {
 
         @Nothrow
         private InstanceDefinition createInstanceDefinition() {
-            return context.getEnv().getProperty(ROUTER_SERVER_DEFINITION, InstanceDefinition.class);
+            return Clusters.loadDefinition(context.getEnv(), ROUTER_SERVER_DEFINITION);
         }
     }
 

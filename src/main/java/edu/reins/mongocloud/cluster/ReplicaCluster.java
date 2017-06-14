@@ -15,6 +15,7 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
+@ToString
 public class ReplicaCluster implements Cluster {
     private static final String DATA_SERVER_DEFINITION = "instance.data.definition";
 
@@ -38,17 +40,19 @@ public class ReplicaCluster implements Cluster {
 
     @Nothrow
     public ReplicaCluster(final Cluster parent, final int idx, final Context context) {
-        final InstanceDefinition dataServerDef =
-                context.getEnv().getProperty(DATA_SERVER_DEFINITION, InstanceDefinition.class);
-        final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
+        final InstanceDefinition dataServerDef = Clusters.loadDefinition(context.getEnv(), DATA_SERVER_DEFINITION);
+
 
         this.id = new ClusterID(String.format("%s::shard-%d", parent.getID().getValue(), idx));
         this.parent = parent.getID();
         this.context = context;
+        this.stateMachine = buildStateMachine();
+
+        final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
+
         this.instances = IntStream.range(0, 3)
                 .mapToObj(i -> new InstanceImpl(context, this, i, dataServerDef, env))
                 .collect(Collectors.toList());
-        this.stateMachine = buildStateMachine();
     }
 
     @Nothrow

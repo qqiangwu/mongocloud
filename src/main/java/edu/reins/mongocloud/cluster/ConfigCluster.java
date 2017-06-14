@@ -12,6 +12,7 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -21,6 +22,7 @@ import java.util.stream.IntStream;
 
 // TODO     notify parent of failure of init rs
 @Slf4j
+@ToString
 public class ConfigCluster implements Cluster {
     private static final String CONFIG_SERVER_DEFINITION = "instance.config.definition";
     private Optional<ConfigClusterMeta> meta = Optional.empty();
@@ -33,18 +35,19 @@ public class ConfigCluster implements Cluster {
 
     @Nothrow
     public ConfigCluster(final Cluster parent, final Context context) {
-        final InstanceDefinition configServerDef =
-                context.getEnv().getProperty(CONFIG_SERVER_DEFINITION, InstanceDefinition.class);
-        final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
+        final InstanceDefinition configServerDef = Clusters.loadDefinition(context.getEnv(), CONFIG_SERVER_DEFINITION);
 
         this.id = new ClusterID(String.format("%s::config", parent.getID().getValue()));
         this.parent = parent.getID();
         this.context = context;
+
+        this.stateMachine = buildStateMachine();
+
+        final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
+
         this.instances = IntStream.range(0, 3)
                 .mapToObj(i -> new InstanceImpl(context, this, i, configServerDef, env))
                 .collect(Collectors.toList());
-
-        this.stateMachine = buildStateMachine();
     }
 
     @Nothrow

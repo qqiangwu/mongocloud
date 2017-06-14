@@ -7,6 +7,7 @@ import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -19,6 +20,7 @@ import java.util.stream.IntStream;
 // TODO     从Context中移除Cluster
 // TODO     将Shards加入集群
 @Slf4j
+@ToString
 public class ShardedCluster implements Cluster {
     private final ClusterStateMachine stateMachine;
 

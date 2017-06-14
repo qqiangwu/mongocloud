@@ -1,6 +1,9 @@
 package edu.reins.mongocloud.resource;
 
+import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.MongoCloudInitializer;
+import edu.reins.mongocloud.clustermanager.ClusterManagerEvent;
+import edu.reins.mongocloud.clustermanager.ClusterManagerEventType;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mesos.MesosSchedulerDriver;
@@ -14,10 +17,13 @@ import java.util.concurrent.Executor;
 @Slf4j
 public class DriverInitializer implements MongoCloudInitializer {
     @Autowired
-    Executor executor;
+    private Executor executor;
 
     @Autowired
-    MesosSchedulerDriver schedulerDriver;
+    private MesosSchedulerDriver schedulerDriver;
+
+    @Autowired
+    private EventBus eventBus;
 
     @Override
     @Nothrow
@@ -33,6 +39,8 @@ public class DriverInitializer implements MongoCloudInitializer {
             schedulerDriver.stop(true);
 
             LOG.info("driverStops");
+
+            eventBus.post(new ClusterManagerEvent(ClusterManagerEventType.CLOSE));
         });
     }
 }
