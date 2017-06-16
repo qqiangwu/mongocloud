@@ -20,6 +20,7 @@ import org.squirrelframework.foundation.fsm.annotation.ContextInsensitive;
 import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 import javax.annotation.PostConstruct;
+import java.util.Objects;
 
 @Component
 @Slf4j
@@ -76,7 +77,7 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
     @Nothrow
     @Override
     public boolean isInitialized() {
-        return stateMachine.getCurrentState().equals(ClusterManagerState.RUNNING);
+        return Objects.equals(stateMachine.getCurrentState(), ClusterManagerState.RUNNING);
     }
 
     /**

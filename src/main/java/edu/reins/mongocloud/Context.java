@@ -4,6 +4,7 @@ import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceID;
+import edu.reins.mongocloud.monitor.Monitor;
 import org.springframework.core.env.Environment;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -17,4 +18,5 @@ public interface Context {
     ClusterManager getClusterManager();
     ResourceProvider getResourceProvider();
     Environment getEnv();
+    Monitor getMonitor();
 }

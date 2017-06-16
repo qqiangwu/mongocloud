@@ -11,13 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 @Component
 @Slf4j
 public class DriverInitializer implements MongoCloudInitializer {
     @Autowired
-    private Executor executor;
+    private ExecutorService executor;
 
     @Autowired
     private MesosSchedulerDriver schedulerDriver;

@@ -99,6 +99,8 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
                 // task failed due to misconfigured commandInfo
             case TASK_FAILED:
             case TASK_ERROR:
+                // FIXME    pass error message
+                LOG.warn("failed(task: {}, msg: {})", taskStatus.getTaskId().getValue(), taskStatus.getMessage());
                 notifyInstance(taskStatus.getTaskId(), InstanceEventType.ERROR);
                 break;
         }

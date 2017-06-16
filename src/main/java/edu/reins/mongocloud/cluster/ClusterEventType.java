@@ -11,5 +11,12 @@ public enum ClusterEventType {
     RS_INITED,
 
     // 遇到某种错误
-    FAIL
+    FAIL,
+
+    // 收到状态更新
+    UPDATE_STATUS,
+
+    // 令cluster自动伸缩
+    SCALE_IN,
+    SCALE_OUT
 }

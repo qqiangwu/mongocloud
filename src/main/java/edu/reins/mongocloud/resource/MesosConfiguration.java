@@ -20,14 +20,17 @@ import java.time.temporal.ChronoUnit;
 public class MesosConfiguration {
     private static final String FRAMEWORK_NAME = "MongoCloud";
 
+    @Value("${mongocloud.user}")
+    private String user;
+
     @Value("${mongocloud.web.ip}")
-    String ip;
+    private String ip;
 
     @Value("${mongocloud.web.port}")
-    int webPort;
+    private int webPort;
 
     @Value("${mongocloud.failover.minutes}")
-    int failoverMinutes;
+    private int failoverMinutes;
 
     @PostConstruct
     public void setup() {
@@ -47,7 +50,7 @@ public class MesosConfiguration {
                 .setCheckpoint(true)
                 .setWebuiUrl(String.format("http://%s:%d", ip, webPort))
                 .setName(FRAMEWORK_NAME)
-                .setUser(FRAMEWORK_NAME)
+                .setUser(user)
                 .build();
 
         return new MesosSchedulerDriver(scheduler, frameworkInfo, mesosMaster);

@@ -7,11 +7,14 @@ import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.Cleanup;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -19,9 +22,11 @@ import java.util.stream.IntStream;
 // TODO     添加由Running向Died的转换
 // TODO     从Context中移除Cluster
 // TODO     将Shards加入集群
+// TODO     SCALE_IN/SCALE_OUT
 @Slf4j
 @ToString
 public class ShardedCluster implements Cluster {
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final ClusterStateMachine stateMachine;
 
     private final Context context;
@@ -31,6 +36,8 @@ public class ShardedCluster implements Cluster {
     private final ConfigCluster configCluster;
     private final RouterCluster routerCluster;
     private final List<ReplicaCluster> shards;
+
+    private final ClusterReport report;
 
     @Nothrow
     public ShardedCluster(ClusterID clusterID, ClusterDefinition clusterDefinition, Context context) {
@@ -44,6 +51,8 @@ public class ShardedCluster implements Cluster {
         shards = IntStream.range(0, clusterDefinition.getCount())
                 .mapToObj(i -> new ReplicaCluster(this, i, context))
                 .collect(Collectors.toList());
+
+        report = new ClusterReport(0, clusterDefinition.getCount());
 
         stateMachine = buildStateMachine();
     }
@@ -85,6 +94,15 @@ public class ShardedCluster implements Cluster {
                 .when(Conditions.allShardsRunning(shards))
                 .perform(new OnChildReady());
 
+        builder.onEntry(ClusterState.RUNNING)
+                .perform(new OnEnterRunning());
+
+        builder.onExit(ClusterState.RUNNING)
+                .perform(new OnExitRunning());
+
+        // status Update
+        // TODO
+
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
     }
@@ -104,6 +122,11 @@ public class ShardedCluster implements Cluster {
     @Nothrow
     @Override
     public List<Instance> getInstances() {
+        @Cleanup("unlock")
+        val readLock = lock.readLock();
+
+        readLock.lock();
+
         return shards.stream()
                 .flatMap(shard -> shard.getInstances().stream())
                 .collect(Collectors.toList());
@@ -111,10 +134,25 @@ public class ShardedCluster implements Cluster {
 
     @Nothrow
     @Override
-    public void handle(final ClusterEvent event) {
-        stateMachine.fire(event.getType(), event);
+    public ClusterReport getReport() {
+        @Cleanup("unlock")
+        val readLock = lock.readLock();
+
+        readLock.lock();
+
+        return report.clone();
     }
 
+    @Nothrow
+    @Override
+    public void handle(final ClusterEvent event) {
+        @Cleanup("unlock")
+        val writeLock = lock.writeLock();
+
+        writeLock.lock();
+
+        stateMachine.fire(event.getType(), event);
+    }
 
     private final class OnInit extends ClusterAction {
         @Nothrow
@@ -161,6 +199,38 @@ public class ShardedCluster implements Cluster {
         @Override
         protected void doExec(final ClusterEvent event) {
             LOG.info("onNewChildReady(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+        }
+    }
+
+    private final class OnEnterRunning extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onEnterRunning(cluster: {}): register to the monitor", getID());
+
+            context.getMonitor().register(getID());
+        }
+    }
+
+    private final class OnExitRunning extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onExitRunning(cluster: {}): unregister to the monitor", getID());
+
+            context.getMonitor().unregister(getID());
+        }
+    }
+
+    private final class OnStatusUpdate extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onStatusUpdate(cluster: {})", getID());
+
+            final ClusterReport newReport = event.getPayload(ClusterReport.class);
+
+            report.setStorageInMB(newReport.getStorageInMB());
         }
     }
 

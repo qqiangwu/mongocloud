@@ -1,5 +1,7 @@
 package edu.reins.mongocloud.impl;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.val;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,11 +19,16 @@ public class MongoCloudConfiguration {
         final int keepAliveMin = 1;
         final int queueSize = 512;
 
+        val blockingQueue = new ArrayBlockingQueue<Runnable>(queueSize);
+        val threadFactory = new ThreadFactoryBuilder().setNameFormat("Pool-%d").build();
+        val rejectPolicy = new ThreadPoolExecutor.CallerRunsPolicy();
+
         return new ThreadPoolExecutor(
                 corePool,
                 maxPool,
                 keepAliveMin, TimeUnit.MINUTES,
-                new ArrayBlockingQueue<>(queueSize),
-                new ThreadPoolExecutor.CallerRunsPolicy());
+                blockingQueue,
+                threadFactory,
+                rejectPolicy);
     }
 }
