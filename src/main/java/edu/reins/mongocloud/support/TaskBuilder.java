@@ -98,7 +98,24 @@ public class TaskBuilder {
         return Protos.CommandInfo.newBuilder()
                 .setShell(true)
                 .addAllArguments(Arrays.asList(args))
+                .setEnvironment(getEnv())
                 .build();
+    }
+
+    @Nothrow
+    private Protos.Environment getEnv() {
+        val builder = Protos.Environment.newBuilder();
+
+        instanceRequest.getEnv().forEach((k, v) -> {
+            val variable = Protos.Environment.Variable.newBuilder()
+                    .setName(k)
+                    .setValue(v)
+                    .build();
+
+            builder.addVariables(variable);
+        });
+
+        return builder.build();
     }
 
     @Nothrow
