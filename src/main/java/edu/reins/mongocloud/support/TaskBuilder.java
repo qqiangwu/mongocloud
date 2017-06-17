@@ -7,7 +7,6 @@ import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.val;
 import org.apache.mesos.Protos;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 public class TaskBuilder {
@@ -93,11 +92,9 @@ public class TaskBuilder {
 
     @Nothrow
     private Protos.CommandInfo buildCommand() {
-        val args = instanceRequest.getDefinition().getArgs().split(" ");
-
         return Protos.CommandInfo.newBuilder()
-                .setShell(true)
-                .addAllArguments(Arrays.asList(args))
+                .setShell(false)
+                .addArguments(instanceRequest.getDefinition().getArgs())
                 .setEnvironment(getEnv())
                 .build();
     }
@@ -107,12 +104,10 @@ public class TaskBuilder {
         val builder = Protos.Environment.newBuilder();
 
         instanceRequest.getEnv().forEach((k, v) -> {
-            val variable = Protos.Environment.Variable.newBuilder()
+            builder.addVariablesBuilder()
                     .setName(k)
                     .setValue(v)
                     .build();
-
-            builder.addVariables(variable);
         });
 
         return builder.build();
