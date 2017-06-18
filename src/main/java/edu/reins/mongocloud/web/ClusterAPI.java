@@ -13,7 +13,6 @@ import edu.reins.mongocloud.web.vo.ClusterVO;
 import edu.reins.mongocloud.web.vo.InstanceVO;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,9 +29,6 @@ public class ClusterAPI {
 
     @Autowired
     private Context context;
-
-    @Autowired
-    private ModelMapper modelMapper;
 
     @GetMapping(path = "create")
     public void createCluster(@RequestParam("id") String id) throws ClusterIDConflictException {

@@ -129,7 +129,7 @@ public class RouterCluster implements Cluster {
                     .map(host -> String.format("%s:%d", host.getIp(), host.getPort()))
                     .collect(Collectors.toList());
 
-            return new RouterClusterMeta(members);
+            return new RouterClusterMeta(parent, members);
         } finally {
             readLock.unlock();
         }

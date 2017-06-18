@@ -6,9 +6,12 @@ import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
+import edu.reins.mongocloud.mongo.request.JoinRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.squirrelframework.foundation.fsm.AnonymousCondition;
+import org.squirrelframework.foundation.fsm.Condition;
 
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -39,6 +42,21 @@ public class ShardedCluster implements Cluster {
     private final List<ReplicaCluster> shards;
 
     private final ClusterReport report;
+    private int joined = 0;
+
+    private final Condition<ClusterEvent> allShardsJoined = new AnonymousCondition<ClusterEvent>() {
+        @Override
+        public boolean isSatisfied(ClusterEvent context) {
+            return joined == shards.size();
+        }
+    };
+
+    private final Condition<ClusterEvent> notAllShardsJoined = new AnonymousCondition<ClusterEvent>() {
+        @Override
+        public boolean isSatisfied(ClusterEvent context) {
+            return joined < shards.size();
+        }
+    };
 
     @Nothrow
     public ShardedCluster(ClusterID clusterID, ClusterDefinition clusterDefinition, Context context) {
@@ -86,13 +104,18 @@ public class ShardedCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.WAIT_SHARDS).to(ClusterState.WAIT_SHARDS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.shardsNotFullyRunning(shards))
                 .perform(new OnChildReady());
 
         builder.transition()
+                .from(ClusterState.WAIT_SHARDS).to(ClusterState.WAIT_SHARDS)
+                .on(ClusterEventType.CHILD_JOINED)
+                .when(notAllShardsJoined)
+                .perform(new OnChildJoined());
+
+        builder.transition()
                 .from(ClusterState.WAIT_SHARDS).to(ClusterState.RUNNING)
-                .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allShardsRunning(shards))
+                .on(ClusterEventType.CHILD_JOINED)
+                .when(allShardsJoined)
                 .perform(new OnChildReady());
 
         builder.onEntry(ClusterState.RUNNING)
@@ -210,6 +233,21 @@ public class ShardedCluster implements Cluster {
         @Override
         protected void doExec(final ClusterEvent event) {
             LOG.info("onNewChildReady(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+
+            val childID = event.getPayload(ClusterID.class);
+            val request = new JoinRequest(getID(), routerCluster.getMeta(), childID);
+
+            context.getMongoMediator().join(request);
+        }
+    }
+
+    private final class OnChildJoined extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onNewChildJoined(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+
+            ++joined;
         }
     }
 

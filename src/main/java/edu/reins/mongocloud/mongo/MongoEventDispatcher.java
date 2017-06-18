@@ -2,6 +2,8 @@ package edu.reins.mongocloud.mongo;
 
 import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.MongoMediator;
+import edu.reins.mongocloud.mongo.request.RsRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +26,7 @@ public class MongoEventDispatcher implements Actor<MongoEvent> {
     public void handle(final MongoEvent event) {
         switch (event.getType()) {
             case INIT_RS:
-                mongoMediator.initRs(event.getPayload(RsDefinition.class));
+                mongoMediator.initRs(event.getPayload(RsRequest.class));
                 break;
 
             default:

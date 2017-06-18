@@ -6,6 +6,8 @@ public enum ClusterEventType {
 
     // 子集群初始化完成
     CHILD_RUNNING,
+    // 子集群join成功
+    CHILD_JOINED,
 
     // RS构建完成
     RS_INITED,

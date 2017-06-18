@@ -5,7 +5,7 @@ import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.model.ClusterID;
-import edu.reins.mongocloud.mongo.MongoMediator;
+import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.monitor.Monitor;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;

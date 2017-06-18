@@ -8,7 +8,7 @@ import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.instance.InstanceHost;
 import edu.reins.mongocloud.instance.Instances;
 import edu.reins.mongocloud.mongo.MongoCommandRunner;
-import edu.reins.mongocloud.mongo.RsDefinition;
+import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -36,41 +36,41 @@ public class InitRsCommand {
      * @throws RuntimeException      if programming error occurs
      */
     @Retryable(MongoCommandException.class)
-    public void exec(final RsDefinition rsDefinition) {
-        Assert.notEmpty(rsDefinition.getMembers());
+    public void exec(final RsRequest rsRequest) {
+        Assert.notEmpty(rsRequest.getMembers());
 
-        val cmd = buildCmdForInitRs(rsDefinition);
-        val master = getMaster(rsDefinition);
+        val cmd = buildCmdForInitRs(rsRequest);
+        val master = getMaster(rsRequest);
 
         commandRunner.runCommand(master, cmd);
 
-        eventBus.post(new ClusterEvent(rsDefinition.getClusterID(), ClusterEventType.RS_INITED));
+        eventBus.post(new ClusterEvent(rsRequest.getClusterID(), ClusterEventType.RS_INITED));
     }
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final RsDefinition rsDefinition) {
-        LOG.error("< initRs(cluster: {}): failed to init", rsDefinition.getClusterID(), e);
+    public void recover(final MongoCommandException e, final RsRequest rsRequest) {
+        LOG.error("< initRs(cluster: {}): failed to init", rsRequest.getClusterID(), e);
 
-        eventBus.post(new ClusterEvent(rsDefinition.getClusterID(), ClusterEventType.FAIL, e.getMessage()));
+        eventBus.post(new ClusterEvent(rsRequest.getClusterID(), ClusterEventType.FAIL, e.getMessage()));
     }
 
     @Nothrow
-    private InstanceHost getMaster(final RsDefinition rs) {
+    private InstanceHost getMaster(final RsRequest rs) {
         return rs.getMembers().get(0).getHost();
     }
 
     @Nothrow
-    private BasicDBObject buildCmdForInitRs(final RsDefinition rsDefinition) {
-        val members = rsDefinition.getMembers().stream()
+    private BasicDBObject buildCmdForInitRs(final RsRequest rsRequest) {
+        val members = rsRequest.getMembers().stream()
                 .map(instance -> new BasicDBObject()
-                        .append("_id", rsDefinition.getMembers().indexOf(instance))
+                        .append("_id", rsRequest.getMembers().indexOf(instance))
                         .append("host", Instances.toAddress(instance)))
                 .collect(Collectors.toList());
 
         val config = new BasicDBObject()
-                .append("_id", rsDefinition.getClusterID().getValue())
-                .append("configsvr", rsDefinition.isConfig())
+                .append("_id", rsRequest.getClusterID().getValue())
+                .append("configsvr", rsRequest.isConfig())
                 .append("members", members);
 
         return new BasicDBObject(DB_CMD_RS_INIT, config);

@@ -10,7 +10,7 @@ import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.mongo.MongoEvent;
 import edu.reins.mongocloud.mongo.MongoEventType;
-import edu.reins.mongocloud.mongo.RsDefinition;
+import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -179,7 +179,7 @@ public class ConfigCluster implements Cluster {
         protected void doExec(final ClusterEvent event) {
             LOG.info("onAllChildrenReady(cluster: {}): init rs", getID());
 
-            final RsDefinition rs = RsDefinition.from(ConfigCluster.this);
+            final RsRequest rs = RsRequest.from(ConfigCluster.this);
 
             context.getEventBus().post(new MongoEvent(MongoEventType.INIT_RS, getID(), rs));
         }

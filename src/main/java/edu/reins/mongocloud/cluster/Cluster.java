@@ -19,4 +19,9 @@ public interface Cluster extends Actor<ClusterEvent> {
                 .storageInMB(0)
                 .build();
     }
+
+    @Nothrow
+    default Instance getMaster() {
+        return getInstances().get(0);
+    }
 }

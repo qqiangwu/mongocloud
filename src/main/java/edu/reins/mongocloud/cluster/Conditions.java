@@ -23,34 +23,6 @@ public abstract class Conditions {
         };
     }
 
-    public static <T extends Event> Condition<T> allShardsRunning(final List<? extends Cluster> clusters) {
-        return new Condition<T>() {
-            @Override
-            public boolean isSatisfied(T t) {
-                return clusters.stream().allMatch(cluster -> cluster.getState().equals(ClusterState.RUNNING));
-            }
-
-            @Override
-            public String name() {
-                return "Condition::allInstancesRunning";
-            }
-        };
-    }
-
-    public static <T extends Event> Condition<T> shardsNotFullyRunning(final List<? extends Cluster> clusters) {
-        return new Condition<T>() {
-            @Override
-            public boolean isSatisfied(T t) {
-                return clusters.stream().anyMatch(cluster -> !cluster.getState().equals(ClusterState.RUNNING));
-            }
-
-            @Override
-            public String name() {
-                return "Condition::instancesNotFullyRunning";
-            }
-        };
-    }
-
     public static <T extends Event> Condition<T> allInstancesRunning(final List<? extends Instance> instances) {
         return new Condition<T>() {
             @Override

@@ -19,4 +19,5 @@ public interface Context {
     ResourceProvider getResourceProvider();
     Environment getEnv();
     Monitor getMonitor();
+    MongoMediator getMongoMediator();
 }
