@@ -105,13 +105,13 @@ public class MongoMediatorImpl implements MongoMediator {
     private Bson buildCmdForInitRs(final RsDefinition rsDefinition) {
         val members = rsDefinition.getMembers().stream()
                 .map(instance -> new BasicDBObject()
-                        .append("_id", instance.getID().getValue())
+                        .append("_id", rsDefinition.getMembers().indexOf(instance))
                         .append("host", Instances.toAddress(instance)))
                 .collect(Collectors.toList());
 
         val config = new BasicDBObject()
                 .append("_id", rsDefinition.getClusterID().getValue())
-                .append("isConfig", rsDefinition.isConfig())
+                .append("configsvr", rsDefinition.isConfig())
                 .append("members", members);
 
         return new BasicDBObject(DB_CMD_RS_INIT, config);
