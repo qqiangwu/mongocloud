@@ -12,21 +12,25 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 // TODO     notify parent of failure of init rs
 @Slf4j
-@ToString
 public class ConfigCluster implements Cluster {
     private static final String CONFIG_SERVER_DEFINITION = "instance.config.definition";
     private Optional<ConfigClusterMeta> meta = Optional.empty();
 
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
     private final ClusterID id;
     private final ClusterID parent;
     private final Context context;
@@ -103,20 +107,38 @@ public class ConfigCluster implements Cluster {
     @Nothrow
     @Override
     public List<Instance> getInstances() {
-        return instances;
+        readLock.lock();
+
+        try {
+            return Collections.unmodifiableList(instances);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Nothrow
+    @Override
+    public void handle(final ClusterEvent event) {
+        writeLock.lock();
+
+        try {
+            stateMachine.fire(event.getType(), event);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     /**
      * @throws IllegalStateException if the cluster is not running
      */
     public ConfigClusterMeta getMeta() {
-        return meta.orElseThrow(() -> new IllegalStateException("ConfigCluster is not running"));
-    }
+        readLock.lock();
 
-    @Nothrow
-    @Override
-    public void handle(final ClusterEvent event) {
-        stateMachine.fire(event.getType(), event);
+        try {
+            return meta.orElseThrow(() -> new IllegalStateException("ConfigCluster is not running"));
+        } finally {
+            readLock.unlock();
+        }
     }
 
     private final class OnInit extends ClusterAction {

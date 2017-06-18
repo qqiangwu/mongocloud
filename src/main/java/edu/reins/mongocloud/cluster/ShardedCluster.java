@@ -24,7 +24,6 @@ import java.util.stream.IntStream;
 // TODO     将Shards加入集群
 // TODO     SCALE_IN/SCALE_OUT
 @Slf4j
-@ToString
 public class ShardedCluster implements Cluster {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Lock readLock = lock.readLock();

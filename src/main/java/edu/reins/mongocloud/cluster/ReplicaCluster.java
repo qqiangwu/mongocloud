@@ -23,14 +23,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
-@ToString
 public class ReplicaCluster implements Cluster {
     private static final String DATA_SERVER_DEFINITION = "instance.data.definition";
 
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
     private final ClusterID id;
     private final ClusterID parent;
     private final Context context;
@@ -108,13 +113,25 @@ public class ReplicaCluster implements Cluster {
     @Nothrow
     @Override
     public List<Instance> getInstances() {
-        return instances;
+        readLock.lock();
+
+        try {
+            return Collections.unmodifiableList(instances);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Nothrow
     @Override
     public void handle(final ClusterEvent event) {
-        stateMachine.fire(event.getType(), event);
+        writeLock.lock();
+
+        try {
+            stateMachine.fire(event.getType(), event);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private final class OnInit extends ClusterAction {
