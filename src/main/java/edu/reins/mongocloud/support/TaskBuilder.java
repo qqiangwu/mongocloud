@@ -7,7 +7,9 @@ import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.val;
 import org.apache.mesos.Protos;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class TaskBuilder {
     private String volume;
@@ -92,9 +94,12 @@ public class TaskBuilder {
 
     @Nothrow
     private Protos.CommandInfo buildCommand() {
+        val args = Arrays.stream(instanceRequest.getDefinition().getArgs().split(" "))
+                .collect(Collectors.toList());
+
         return Protos.CommandInfo.newBuilder()
                 .setShell(false)
-                .addArguments(instanceRequest.getDefinition().getArgs())
+                .addAllArguments(args)
                 .setEnvironment(getEnv())
                 .build();
     }

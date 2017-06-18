@@ -37,7 +37,7 @@ public class ConfigCluster implements Cluster {
     public ConfigCluster(final Cluster parent, final Context context) {
         final InstanceDefinition configServerDef = Clusters.loadDefinition(context.getEnv(), CONFIG_SERVER_DEFINITION);
 
-        this.id = new ClusterID(String.format("%s::config", parent.getID().getValue()));
+        this.id = new ClusterID(String.format("%s-config", parent.getID().getValue()));
         this.parent = parent.getID();
         this.context = context;
 

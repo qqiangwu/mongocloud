@@ -33,7 +33,7 @@ public class RouterCluster implements Cluster {
 
     @Nothrow
     public RouterCluster(final Cluster parent, final Context context) {
-        this.id = new ClusterID(String.format("%s::router", parent.getID().getValue()));
+        this.id = new ClusterID(String.format("%s-router", parent.getID().getValue()));
         this.parent = parent.getID();
         this.context = context;
         this.instances = new ArrayList<>();

@@ -7,13 +7,13 @@ import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.task.TaskExecutor;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
 /**
  * @author wuqq
@@ -25,11 +25,11 @@ public class AsyncEventBus implements EventBus {
     private final BlockingQueue<Event> eventQueue = new ArrayBlockingQueue<>(1024);
 
     @Autowired
-    private ExecutorService executorService;
+    private TaskExecutor executorService;
 
     @PostConstruct
     public void setup() {
-        executorService.submit(new PipelineProcessor());
+        executorService.execute(new PipelineProcessor());
     }
 
     @Nothrow

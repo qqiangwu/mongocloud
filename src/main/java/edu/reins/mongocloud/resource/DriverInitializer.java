@@ -9,15 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.mesos.MesosSchedulerDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.ExecutorService;
 
 @Component
 @Slf4j
 public class DriverInitializer implements MongoCloudInitializer {
     @Autowired
-    private ExecutorService executor;
+    private TaskExecutor executor;
 
     @Autowired
     private MesosSchedulerDriver schedulerDriver;

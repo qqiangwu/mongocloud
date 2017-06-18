@@ -8,10 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
 
 /**
  * TODO     remove this, it's for testing purpose only
@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class SubmitInitializer implements MongoCloudInitializer {
     @Autowired
-    private ExecutorService executorService;
+    private TaskExecutor executorService;
 
     @Autowired
     private ClusterManager clusterManager;
