@@ -12,16 +12,23 @@ import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
 import edu.reins.mongocloud.support.Errors;
 import edu.reins.mongocloud.support.annotation.Nothrow;
+import lombok.Cleanup;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Slf4j
 @ToString
 public class InstanceImpl implements Instance {
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
     private final Context context;
     private final ClusterID parentID;
     private final InstanceID id;
@@ -71,7 +78,13 @@ public class InstanceImpl implements Instance {
 
     @Override
     public void handle(final InstanceEvent event) {
-        stateMachine.fire(event.getType(), event);
+        writeLock.lock();
+
+        try {
+            stateMachine.fire(event.getType(), event);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
@@ -96,7 +109,13 @@ public class InstanceImpl implements Instance {
 
     @Override
     public InstanceHost getHost() {
-        return host.orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
+        readLock.lock();
+
+        try {
+            return host.orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
+        } finally {
+            readLock.unlock();
+        }
     }
     
     private final class OnInit extends InstanceAction {
@@ -120,7 +139,7 @@ public class InstanceImpl implements Instance {
 
             host = Optional.of(instanceHost);
 
-            LOG.info("> onLaunched(instance: {}, host: {})", getID(), host);
+            LOG.info("> onLaunched(instance: {}, host: {})", getID(), instanceHost);
         }
     }
     

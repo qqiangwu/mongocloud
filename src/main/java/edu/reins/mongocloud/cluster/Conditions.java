@@ -69,7 +69,8 @@ public abstract class Conditions {
         return new Condition<T>() {
             @Override
             public boolean isSatisfied(T t) {
-                return instances.stream().anyMatch(instance -> !instance.getState().equals(InstanceState.RUNNING));
+                return instances.stream()
+                        .anyMatch(instance -> !instance.getState().equals(InstanceState.RUNNING));
             }
 
             @Override

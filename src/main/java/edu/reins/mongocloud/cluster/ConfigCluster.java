@@ -41,13 +41,13 @@ public class ConfigCluster implements Cluster {
         this.parent = parent.getID();
         this.context = context;
 
-        this.stateMachine = buildStateMachine();
-
         final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
 
         this.instances = IntStream.range(0, 3)
                 .mapToObj(i -> new InstanceImpl(context, this, i, configServerDef, env))
                 .collect(Collectors.toList());
+
+        this.stateMachine = buildStateMachine();
     }
 
     @Nothrow

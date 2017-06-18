@@ -46,13 +46,14 @@ public class ReplicaCluster implements Cluster {
         this.id = new ClusterID(String.format("%s::shard-%d", parent.getID().getValue(), idx));
         this.parent = parent.getID();
         this.context = context;
-        this.stateMachine = buildStateMachine();
 
         final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
 
         this.instances = IntStream.range(0, 3)
                 .mapToObj(i -> new InstanceImpl(context, this, i, dataServerDef, env))
                 .collect(Collectors.toList());
+
+        this.stateMachine = buildStateMachine();
     }
 
     @Nothrow

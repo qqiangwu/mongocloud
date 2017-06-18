@@ -64,19 +64,19 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
     }
 
     @PostConstruct
-    public void setup() {
+    public synchronized void setup() {
         eventBus.register(ClusterManagerEvent.class, this);
     }
 
     @Nothrow
     @Override
-    public void handle(final ClusterManagerEvent event) {
+    public synchronized void handle(final ClusterManagerEvent event) {
         stateMachine.fire(event.getType());
     }
 
     @Nothrow
     @Override
-    public boolean isInitialized() {
+    public synchronized boolean isInitialized() {
         return Objects.equals(stateMachine.getCurrentState(), ClusterManagerState.RUNNING);
     }
 
@@ -86,7 +86,8 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
      * @throws IllegalStateException        if clusterManager is not initialized
      */
     @Override
-    public void createCluster(final ClusterDefinition clusterDefinition) throws ClusterIDConflictException {
+    public synchronized void createCluster(final ClusterDefinition clusterDefinition)
+            throws ClusterIDConflictException {
         ensureInitialized();
 
         val clusterID = new ClusterID(clusterDefinition.getId());

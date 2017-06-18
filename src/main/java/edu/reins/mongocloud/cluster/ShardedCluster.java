@@ -7,12 +7,12 @@ import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
-import lombok.Cleanup;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -27,6 +27,9 @@ import java.util.stream.IntStream;
 @ToString
 public class ShardedCluster implements Cluster {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
+
     private final ClusterStateMachine stateMachine;
 
     private final Context context;
@@ -122,36 +125,39 @@ public class ShardedCluster implements Cluster {
     @Nothrow
     @Override
     public List<Instance> getInstances() {
-        @Cleanup("unlock")
-        val readLock = lock.readLock();
-
         readLock.lock();
 
-        return shards.stream()
-                .flatMap(shard -> shard.getInstances().stream())
-                .collect(Collectors.toList());
+        try {
+            return shards.stream()
+                    .flatMap(shard -> shard.getInstances().stream())
+                    .collect(Collectors.toList());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Nothrow
     @Override
     public ClusterReport getReport() {
-        @Cleanup("unlock")
-        val readLock = lock.readLock();
-
         readLock.lock();
 
-        return report.clone();
+        try {
+            return report.clone();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Nothrow
     @Override
     public void handle(final ClusterEvent event) {
-        @Cleanup("unlock")
-        val writeLock = lock.writeLock();
-
         writeLock.lock();
 
-        stateMachine.fire(event.getType(), event);
+        try {
+            stateMachine.fire(event.getType(), event);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private final class OnInit extends ClusterAction {

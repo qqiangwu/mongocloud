@@ -1,30 +1,40 @@
 package edu.reins.mongocloud.impl;
 
+import com.google.common.util.concurrent.UncaughtExceptionHandlers;
 import lombok.val;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.scheduling.config.TaskExecutorFactoryBean;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class MongoCloudConfiguration {
     @Bean("POOL")
-    public TaskExecutorFactoryBean taskExecutorFactoryBean() {
+    public TaskExecutor taskExecutor() {
         final int corePool = 4;
         final int maxPool = 32;
         final int queueSize = 512;
 
-        val factory = new TaskExecutorFactoryBean();
+        val taskExecutor = new ThreadPoolTaskExecutor();
 
-        factory.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        factory.setKeepAliveSeconds(60);
-        factory.setPoolSize(String.format("%d-%d", corePool, maxPool));
-        factory.setQueueCapacity(queueSize);
+        taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        taskExecutor.setKeepAliveSeconds(60);
+        taskExecutor.setCorePoolSize(corePool);
+        taskExecutor.setMaxPoolSize(maxPool);
+        taskExecutor.setQueueCapacity(queueSize);
+        taskExecutor.setThreadFactory(r -> {
+            final Thread t = new Thread(r);
 
-        return factory;
+            t.setUncaughtExceptionHandler(UncaughtExceptionHandlers.systemExit());
+
+            return t;
+        });
+
+        return taskExecutor;
     }
 
     @Bean
@@ -34,6 +44,7 @@ public class MongoCloudConfiguration {
         scheduler.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         scheduler.setPoolSize(8);
         scheduler.setThreadNamePrefix("SCHED-");
+        scheduler.setErrorHandler(throwable -> System.exit(1));
 
         return scheduler;
     }
