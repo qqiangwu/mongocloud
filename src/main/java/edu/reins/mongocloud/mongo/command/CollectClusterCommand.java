@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.cluster.mongo.command;
+package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
@@ -7,8 +7,8 @@ import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.cluster.ClusterEvent;
 import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.cluster.ClusterReport;
-import edu.reins.mongocloud.cluster.mongo.MongoCommandRunner;
 import edu.reins.mongocloud.instance.InstanceHost;
+import edu.reins.mongocloud.mongo.MongoCommandRunner;
 import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;

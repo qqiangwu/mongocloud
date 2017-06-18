@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.cluster.mongo;
+package edu.reins.mongocloud.mongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;

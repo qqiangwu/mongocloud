@@ -1,8 +1,8 @@
-package edu.reins.mongocloud.cluster.mongo;
+package edu.reins.mongocloud.mongo;
 
 import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.cluster.mongo.command.CollectClusterCommand;
-import edu.reins.mongocloud.cluster.mongo.command.InitRsCommand;
+import edu.reins.mongocloud.mongo.command.CollectClusterCommand;
+import edu.reins.mongocloud.mongo.command.InitRsCommand;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

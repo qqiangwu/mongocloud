@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.cluster.mongo;
+package edu.reins.mongocloud.mongo;
 
 import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.EventBus;

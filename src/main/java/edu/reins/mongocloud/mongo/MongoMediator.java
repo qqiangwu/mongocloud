@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.cluster.mongo;
+package edu.reins.mongocloud.mongo;
 
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.support.annotation.Nothrow;
