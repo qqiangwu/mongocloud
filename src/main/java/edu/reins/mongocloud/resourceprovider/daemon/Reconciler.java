@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.resource.daemon;
+package edu.reins.mongocloud.resourceprovider.daemon;
 
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.support.annotation.Nothrow;

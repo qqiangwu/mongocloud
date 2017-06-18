@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.resource;
+package edu.reins.mongocloud.resourceprovider;
 
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;

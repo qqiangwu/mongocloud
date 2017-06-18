@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.resource;
+package edu.reins.mongocloud.resourceprovider;
 
 import edu.reins.mongocloud.exception.InitializationException;
 import lombok.extern.slf4j.Slf4j;
