@@ -95,27 +95,20 @@ public class TaskBuilder {
     @Nothrow
     private Protos.CommandInfo buildCommand() {
         val args = Arrays.stream(instanceRequest.getDefinition().getArgs().split(" "))
+                .map(this::expandEnvVar)
                 .collect(Collectors.toList());
 
         return Protos.CommandInfo.newBuilder()
                 .setShell(false)
                 .addAllArguments(args)
-                .setEnvironment(getEnv())
                 .build();
     }
 
     @Nothrow
-    private Protos.Environment getEnv() {
-        val builder = Protos.Environment.newBuilder();
-
-        instanceRequest.getEnv().forEach((k, v) -> {
-            builder.addVariablesBuilder()
-                    .setName(k)
-                    .setValue(v)
-                    .build();
-        });
-
-        return builder.build();
+    private String expandEnvVar(final String arg) {
+        return arg.startsWith("$")
+                ? instanceRequest.getEnv().getOrDefault(arg.substring(1), arg)
+                : arg;
     }
 
     @Nothrow
@@ -174,7 +167,7 @@ public class TaskBuilder {
 
         return Protos.ContainerInfo.newBuilder()
                 .setType(Protos.ContainerInfo.Type.DOCKER)
-                .addVolumes(dockerVolume)
+                //.addVolumes(dockerVolume)
                 .setDocker(docker);
     }
 }

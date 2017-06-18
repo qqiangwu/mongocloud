@@ -246,8 +246,6 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
                 .setInstanceRequest(request)
                 .build();
 
-        LOG.debug("> launch(id: {}, task: {})", request.getInstanceID(), taskInfo);
-
         val instanceHost = createInstanceHost(offer, taskInfo);
 
         // store update go first
