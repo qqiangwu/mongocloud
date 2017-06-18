@@ -94,7 +94,14 @@ public class InstanceImpl implements Instance {
 
     @Override
     public InstanceState getState() {
-        return stateMachine.getCurrentState();
+        readLock.lock();
+
+        try {
+            val state = stateMachine.getCurrentState();
+            return state == null? stateMachine.getInitialState(): state;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override

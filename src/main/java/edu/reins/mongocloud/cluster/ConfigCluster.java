@@ -101,7 +101,14 @@ public class ConfigCluster implements Cluster {
     @Nothrow
     @Override
     public ClusterState getState() {
-        return stateMachine.getCurrentState();
+        readLock.lock();
+
+        try {
+            val state = stateMachine.getCurrentState();
+            return state == null? stateMachine.getInitialState(): state;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Nothrow
