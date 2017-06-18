@@ -5,10 +5,10 @@ def build():
 
 def send():
     build()
-    local('scp target/mm.jar reins:~')
+    local('scp target/mongocloud.jar reins:~')
 
 def run():
-    local('ssh reins "LIBPROCESS_IP=192.168.1.64 java -jar mm.jar"')
+    local('ssh reins "LIBPROCESS_IP=192.168.1.64 java -jar mongocloud.jar"')
 
 def all():
     send()

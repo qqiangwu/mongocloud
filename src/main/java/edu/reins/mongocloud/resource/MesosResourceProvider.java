@@ -107,7 +107,7 @@ public class MesosResourceProvider extends AbstractMesosResourceProvider {
 
         val taskInfo = buildTask(instance, offer);
 
-        // log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
+        log.debug("< launch(id: {}, task: {})", instance.getId(), taskInfo);
 
         schedulerDriver.launchTasks(Arrays.asList(offer.getId()), Arrays.asList(taskInfo));
 
