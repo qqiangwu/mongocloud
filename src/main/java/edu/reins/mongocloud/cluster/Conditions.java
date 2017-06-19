@@ -4,6 +4,7 @@ import edu.reins.mongocloud.Event;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceState;
 import edu.reins.mongocloud.model.ClusterID;
+import org.squirrelframework.foundation.fsm.AnonymousCondition;
 import org.squirrelframework.foundation.fsm.Condition;
 
 import java.util.List;
@@ -48,6 +49,26 @@ public abstract class Conditions {
             @Override
             public String name() {
                 return "Condition::instancesNotFullyRunning";
+            }
+        };
+    }
+
+    public static <T extends Event> Condition<T> allWithState(
+            final List<? extends Instance> instances, final InstanceState state) {
+        return new AnonymousCondition<T>() {
+            @Override
+            public boolean isSatisfied(final T t) {
+                return instances.stream().allMatch(i -> i.getState() == state);
+            }
+        };
+    }
+
+    public static <T extends Event> Condition<T> partWithState(
+            final List<? extends Instance> instances, final InstanceState state) {
+        return new AnonymousCondition<T>() {
+            @Override
+            public boolean isSatisfied(final T t) {
+                return instances.stream().anyMatch(i -> i.getState() != state);
             }
         };
     }

@@ -7,6 +7,8 @@ import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.mongo.request.JoinRequest;
+import edu.reins.mongocloud.mongo.request.RemoveRequest;
+import edu.reins.mongocloud.support.Errors;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -23,7 +25,6 @@ import java.util.stream.IntStream;
 // TODO     添加Submitted状态中config/router/replica的失效问题
 // TODO     添加由Running向Died的转换
 // TODO     从Context中移除Cluster
-// TODO     将Shards加入集群
 // TODO     SCALE_IN/SCALE_OUT
 @Slf4j
 public class ShardedCluster implements Cluster {
@@ -141,13 +142,18 @@ public class ShardedCluster implements Cluster {
                 .perform(new OnScaleOut());
 
         // scale in
-        // TODO
-        /*
         builder.transition()
                 .from(ClusterState.RUNNING).to(ClusterState.SCALING_IN)
                 .on(ClusterEventType.SCALE_IN)
                 .perform(new OnScaleIn());
-        */
+        builder.transition()
+                .from(ClusterState.SCALING_IN).to(ClusterState.RECYCLE)
+                .on(ClusterEventType.CHILD_REMOVED)
+                .perform(new OnChildRemoved());
+        builder.transition()
+                .from(ClusterState.RECYCLE).to(ClusterState.RUNNING)
+                .on(ClusterEventType.CHILD_FINISHED)
+                .perform(new OnChildRecycled());
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -276,9 +282,11 @@ public class ShardedCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onEnterRunning(cluster: {}): register to the monitor", getID());
+            if (from != ClusterState.RUNNING) {
+                LOG.info("onEnterRunning(cluster: {}): register to the monitor", getID());
 
-            context.getMonitor().register(getID());
+                context.getMonitor().register(getID());
+            }
         }
     }
 
@@ -286,9 +294,11 @@ public class ShardedCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onExitRunning(cluster: {}): unregister to the monitor", getID());
+            if (from != ClusterState.RUNNING) {
+                LOG.info("onExitRunning(cluster: {}): unregister to the monitor", getID());
 
-            context.getMonitor().unregister(getID());
+                context.getMonitor().unregister(getID());
+            }
         }
     }
 
@@ -323,10 +333,58 @@ public class ShardedCluster implements Cluster {
     }
 
     private final class OnScaleIn extends ClusterAction {
-        @Nothrow
+        /**
+         * @throws IllegalStateException    if there is only one shard, it will. It will crash the app
+         */
         @Override
         protected void doExec(final ClusterEvent event) {
             LOG.info("onScaleIn(cluster: {}, from: {}, to: {})", getID(), shards.size(), shards.size() - 1);
+
+            if (shards.size() <= 1) {
+                throw new IllegalStateException("Scale in not allowed");
+            }
+
+            final ReplicaCluster victim = shards.get(0);
+
+            context.getMongoMediator().remove(new RemoveRequest(getID(), routerCluster.getID(), victim.getID()));
+        }
+    }
+
+    private final class OnChildRemoved extends ClusterAction {
+        /**
+         * @throws IllegalArgumentException    if there is only one shard, it will. It will crash the app
+         */
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildRemoved(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+
+            final ClusterID victimID = event.getPayload(ClusterID.class);
+            final ReplicaCluster victim = shards.stream()
+                    .filter(sh -> sh.getID().equals(victimID))
+                    .findAny()
+                    .orElseThrow(Errors.throwException(IllegalArgumentException.class, "Bad child id"));
+
+            notifyChild(victim, ClusterEventType.KILL);
+        }
+    }
+
+    private final class OnChildRecycled extends ClusterAction {
+        /**
+         * @throws IllegalArgumentException    if there is only one shard, it will. It will crash the app
+         */
+        @Override
+        protected void doExec(ClusterEvent event) {
+            LOG.info("onChildRemoved(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+
+            final ClusterID victimID = event.getPayload(ClusterID.class);
+            final ReplicaCluster victim = shards.stream()
+                    .filter(sh -> sh.getID().equals(victimID))
+                    .findAny()
+                    .orElseThrow(Errors.throwException(IllegalArgumentException.class, "Bad child id"));
+
+            --joined;
+            shards.remove(victim);
+            context.getClusters().remove(victimID);
         }
     }
 

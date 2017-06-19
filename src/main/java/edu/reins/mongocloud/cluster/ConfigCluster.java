@@ -8,8 +8,6 @@ import edu.reins.mongocloud.instance.*;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
-import edu.reins.mongocloud.mongo.MongoEvent;
-import edu.reins.mongocloud.mongo.MongoEventType;
 import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
@@ -181,7 +179,7 @@ public class ConfigCluster implements Cluster {
 
             final RsRequest rs = RsRequest.from(ConfigCluster.this);
 
-            context.getEventBus().post(new MongoEvent(MongoEventType.INIT_RS, getID(), rs));
+            context.getMongoMediator().initRs(rs);
         }
     }
 

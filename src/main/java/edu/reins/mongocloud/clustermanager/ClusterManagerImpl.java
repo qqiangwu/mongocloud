@@ -4,10 +4,10 @@ import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.ClusterManager;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
-import edu.reins.mongocloud.cluster.ClusterEvent;
-import edu.reins.mongocloud.cluster.ClusterEventType;
-import edu.reins.mongocloud.cluster.ShardedCluster;
+import edu.reins.mongocloud.cluster.*;
 import edu.reins.mongocloud.clustermanager.exception.ClusterIDConflictException;
+import edu.reins.mongocloud.clustermanager.exception.ClusterNotFoundException;
+import edu.reins.mongocloud.clustermanager.exception.OperationNotAllowedException;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
@@ -100,10 +100,72 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
         eventBus.post(new ClusterEvent(clusterID, ClusterEventType.INIT));
     }
 
+    /**
+     * @param clusterID
+     *
+     * @throws ClusterNotFoundException if the id is not found
+     * @throws OperationNotAllowedException if the cluster is in bad state
+     *
+     * @throws IllegalStateException  if the clusterManager is not initialized
+     */
+    @Override
+    public void scaleOut(final ClusterID clusterID) throws ClusterNotFoundException, OperationNotAllowedException {
+        ensureInitialized();
+
+        final Cluster cluster = getOrThrows(clusterID);
+
+        ensureState(cluster, ClusterState.RUNNING);
+
+        LOG.info("scaleOut(cluster: {})", cluster.getID());
+
+        sendMessageToCluster(cluster, ClusterEventType.SCALE_OUT);
+    }
+
+    /**
+     * @param clusterID
+     *
+     * @throws ClusterNotFoundException if the id is not found
+     * @throws OperationNotAllowedException if the cluster is in bad state
+     *
+     * @throws IllegalStateException  if the clusterManager is not initialized
+     */
+    @Override
+    public void scaleIn(final ClusterID clusterID) throws ClusterNotFoundException, OperationNotAllowedException {
+        ensureInitialized();
+
+        final Cluster cluster = getOrThrows(clusterID);
+
+        ensureState(cluster, ClusterState.RUNNING);
+
+        LOG.info("scaleIn(cluster: {})", cluster.getID());
+
+        sendMessageToCluster(cluster, ClusterEventType.SCALE_IN);
+    }
+
     private void ensureInitialized() {
         if (!isInitialized()) {
             throw new IllegalStateException("ClusterMananger is not initialized");
         }
+    }
+
+    private Cluster getOrThrows(final ClusterID clusterID) throws ClusterNotFoundException {
+        final Cluster cluster = context.getClusters().get(clusterID);
+
+        if (cluster == null) {
+            throw new ClusterNotFoundException(cluster.getID().getValue());
+        }
+
+        return cluster;
+    }
+
+    private void ensureState(final Cluster cluster, final ClusterState state) throws OperationNotAllowedException {
+        if (cluster.getState() != state) {
+            throw new OperationNotAllowedException(String.format("clusterState: %s", cluster.getState()));
+        }
+    }
+
+    private void sendMessageToCluster(final Cluster cluster, final ClusterEventType eventType) {
+        eventBus.post(new ClusterEvent(cluster.getID(), eventType));
     }
 
     @ContextInsensitive

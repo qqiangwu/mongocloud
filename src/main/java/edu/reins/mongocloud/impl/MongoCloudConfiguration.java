@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class MongoCloudConfiguration {
-    @Bean("POOL")
+    @Bean
     public TaskExecutor taskExecutor() {
         final int corePool = 4;
         final int maxPool = 32;

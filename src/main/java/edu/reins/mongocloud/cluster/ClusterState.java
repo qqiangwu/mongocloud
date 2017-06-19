@@ -18,6 +18,8 @@ public enum ClusterState {
     // scale时的状态
     SCALING_OUT,
     SCALING_IN,
+    // shard已经移除，正在准备回收
+    RECYCLE,
 
     // 终止
     FAILED,

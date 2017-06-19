@@ -8,6 +8,10 @@ public enum ClusterEventType {
     CHILD_RUNNING,
     // 子集群join成功
     CHILD_JOINED,
+    // 子集群被成功移除
+    CHILD_REMOVED,
+    // 子集群已经被关闭
+    CHILD_FINISHED,
 
     // RS构建完成
     RS_INITED,
@@ -20,5 +24,8 @@ public enum ClusterEventType {
 
     // 令cluster自动伸缩
     SCALE_IN,
-    SCALE_OUT
+    SCALE_OUT,
+
+    // 关闭一个cluster
+    KILL
 }

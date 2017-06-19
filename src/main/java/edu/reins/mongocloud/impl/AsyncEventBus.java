@@ -61,6 +61,7 @@ public class AsyncEventBus implements EventBus {
                     return;
                 } catch (RuntimeException e) {
                     LOG.warn("unexpected exception(msg: {})", e.getMessage(), e);
+                    System.exit(1);
                 }
             }
         }

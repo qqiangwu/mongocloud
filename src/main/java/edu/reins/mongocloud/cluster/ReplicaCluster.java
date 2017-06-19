@@ -4,20 +4,16 @@ import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.fsm.ClusterAction;
 import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
-import edu.reins.mongocloud.instance.Instance;
-import edu.reins.mongocloud.instance.InstanceEvent;
-import edu.reins.mongocloud.instance.InstanceEventType;
-import edu.reins.mongocloud.instance.InstanceImpl;
+import edu.reins.mongocloud.instance.*;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
-import edu.reins.mongocloud.mongo.MongoEvent;
-import edu.reins.mongocloud.mongo.MongoEventType;
 import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +87,23 @@ public class ReplicaCluster implements Cluster {
                 .from(ClusterState.INIT_RS).to(ClusterState.FAILED)
                 .on(ClusterEventType.FAIL)
                 .perform(new OnFailed());
+
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.RECYCLE)
+                .on(ClusterEventType.KILL)
+                .perform(new OnKill());
+
+        builder.transition()
+                .from(ClusterState.RECYCLE).to(ClusterState.RECYCLE)
+                .on(ClusterEventType.CHILD_FINISHED)
+                .when(Conditions.partWithState(instances, InstanceState.FINISHED))
+                .perform(new OnChildRemoved());
+
+        builder.transition()
+                .from(ClusterState.RECYCLE).to(ClusterState.FINISHED)
+                .on(ClusterEventType.CHILD_FINISHED)
+                .when(Conditions.allWithState(instances, InstanceState.FINISHED))
+                .perform(Arrays.asList(new OnChildRemoved(), new OnCleanup()));
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -170,7 +183,7 @@ public class ReplicaCluster implements Cluster {
 
             final RsRequest rs = RsRequest.from(ReplicaCluster.this);
 
-            context.getEventBus().post(new MongoEvent(MongoEventType.INIT_RS, getID(), rs));
+            context.getMongoMediator().initRs(rs);
         }
     }
 
@@ -185,12 +198,56 @@ public class ReplicaCluster implements Cluster {
         }
     }
 
+    private final class OnKill extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onKill(cluster: {})", getID());
+
+            instances.forEach(instance -> notifyChild(instance.getID(), InstanceEventType.KILL));
+        }
+    }
+
+    private final class OnChildRemoved extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildRemoved(cluster: {}, child: {}): unregister the instance",
+                    getID(), event.getPayload(InstanceID.class));
+
+            final InstanceID child = event.getPayload(InstanceID.class);
+
+            context.getInstances().remove(child);
+            instances.removeIf(i -> i.getID().equals(child));
+        }
+    }
+
+    private final class OnCleanup extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onCleanup(cluster: {})", getID());
+
+            notifyParent(ClusterEventType.CHILD_FINISHED);
+        }
+    }
+
     // TODO     notify parent
     private final class OnFailed extends ClusterAction {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
             LOG.info("onFailed(id: {}, msg: {})", getID(), event.getPayload(String.class));
+
+            System.exit(1);
         }
+    }
+
+    private void notifyChild(final InstanceID instanceID, final InstanceEventType event) {
+        context.getEventBus().post(new InstanceEvent(event, instanceID));
+    }
+
+    private void notifyParent(final ClusterEventType event) {
+        context.getEventBus().post(new ClusterEvent(parent, event));
     }
 }

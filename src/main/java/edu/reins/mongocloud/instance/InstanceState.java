@@ -7,5 +7,5 @@ public enum InstanceState {
     RUNNING,
     FAILED,
     DIEING,
-    DIED
+    FINISHED
 }

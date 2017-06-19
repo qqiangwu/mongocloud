@@ -5,6 +5,8 @@ import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.cluster.Clusters;
 import edu.reins.mongocloud.clustermanager.exception.ClusterIDConflictException;
+import edu.reins.mongocloud.clustermanager.exception.ClusterNotFoundException;
+import edu.reins.mongocloud.clustermanager.exception.OperationNotAllowedException;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceState;
 import edu.reins.mongocloud.model.ClusterDefinition;
@@ -22,7 +24,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RestController(value = "clusters/")
+@RestController
 public class ClusterAPI {
     @Autowired
     private ClusterManager clusterManager;
@@ -41,7 +43,7 @@ public class ClusterAPI {
         clusterManager.createCluster(definition);
     }
 
-    @GetMapping(path = "")
+    @GetMapping(path = "get")
     public Cluster getCluster(@RequestParam("id") String id) {
         final ClusterID clusterID = Clusters.of(id);
         final Cluster cluster = context.getClusters().get(clusterID);
@@ -51,12 +53,26 @@ public class ClusterAPI {
         return cluster;
     }
 
-    @GetMapping(path = "all")
+    @GetMapping(path = "getAll")
     public Collection<ClusterVO> getAllClusters() {
         return context.getClusters().values()
                 .stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping(path = "scaleOut")
+    public void scaleOut(@RequestParam("id") String id) throws ClusterNotFoundException, OperationNotAllowedException {
+        final ClusterID clusterID = Clusters.of(id);
+
+        clusterManager.scaleOut(clusterID);
+    }
+
+    @GetMapping(path = "scaleIn")
+    public void scaleIn(@RequestParam("id") String id) throws ClusterNotFoundException, OperationNotAllowedException {
+        final ClusterID clusterID = Clusters.of(id);
+
+        clusterManager.scaleIn(clusterID);
     }
 
     private ClusterVO toVO(final Cluster cluster) {

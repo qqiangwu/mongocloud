@@ -73,6 +73,16 @@ public class InstanceImpl implements Instance {
                 .on(InstanceEventType.RUNNING)
                 .perform(new OnRunning());
 
+        builder.transitions()
+                .fromAmong(InstanceState.values()).to(InstanceState.DIEING)
+                .on(InstanceEventType.KILL)
+                .perform(new OnKill());
+
+        builder.transition()
+                .from(InstanceState.DIEING).to(InstanceState.FINISHED)
+                .on(InstanceEventType.KILLED)
+                .perform(new OnCleanup());
+
         // done
         return builder.newStateMachine(InstanceState.NEW, this, context);
     }
@@ -157,6 +167,26 @@ public class InstanceImpl implements Instance {
 
             context.getEventBus()
                     .post(new ClusterEvent(parentID, ClusterEventType.CHILD_RUNNING, getID()));
+        }
+    }
+
+    private final class OnKill extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            LOG.info("onKill(instance: {})", getID());
+
+            context.getResourceProvider().kill(getID());
+        }
+    }
+
+    private final class OnCleanup extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            LOG.info("onCleanup(instance: {})", getID());
+
+            context.getEventBus().post(new ClusterEvent(parentID, ClusterEventType.CHILD_FINISHED, getID()));
         }
     }
 }
