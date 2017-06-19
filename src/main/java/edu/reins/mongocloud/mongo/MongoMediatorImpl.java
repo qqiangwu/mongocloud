@@ -5,6 +5,7 @@ import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.mongo.command.CollectClusterCommand;
 import edu.reins.mongocloud.mongo.command.InitRsCommand;
 import edu.reins.mongocloud.mongo.command.JoinCommand;
+import edu.reins.mongocloud.mongo.command.RemoveCommand;
 import edu.reins.mongocloud.mongo.request.JoinRequest;
 import edu.reins.mongocloud.mongo.request.RemoveRequest;
 import edu.reins.mongocloud.mongo.request.RsRequest;
@@ -27,6 +28,9 @@ public class MongoMediatorImpl implements MongoMediator {
     @Autowired
     private JoinCommand joinCommand;
 
+    @Autowired
+    private RemoveCommand removeCommand;
+
     @Nothrow
     @Override
     public void initRs(final RsRequest rsRequest) {
@@ -47,6 +51,8 @@ public class MongoMediatorImpl implements MongoMediator {
     @Override
     public void remove(final RemoveRequest removeRequest) {
         LOG.info("remove(cluster: {}, child: {})", removeRequest.getCluster(), removeRequest.getParticipant());
+
+        removeCommand.exec(removeRequest);
     }
 
     @Nothrow
