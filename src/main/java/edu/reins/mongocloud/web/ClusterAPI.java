@@ -2,8 +2,7 @@ package edu.reins.mongocloud.web;
 
 import edu.reins.mongocloud.ClusterManager;
 import edu.reins.mongocloud.Context;
-import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.cluster.Clusters;
+import edu.reins.mongocloud.cluster.*;
 import edu.reins.mongocloud.clustermanager.exception.ClusterIDConflictException;
 import edu.reins.mongocloud.clustermanager.exception.ClusterNotFoundException;
 import edu.reins.mongocloud.clustermanager.exception.OperationNotAllowedException;
@@ -11,6 +10,7 @@ import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceState;
 import edu.reins.mongocloud.model.ClusterDefinition;
 import edu.reins.mongocloud.model.ClusterID;
+import edu.reins.mongocloud.support.Errors;
 import edu.reins.mongocloud.web.vo.ClusterVO;
 import edu.reins.mongocloud.web.vo.InstanceVO;
 import lombok.extern.slf4j.Slf4j;
@@ -44,13 +44,13 @@ public class ClusterAPI {
     }
 
     @GetMapping(path = "get")
-    public Cluster getCluster(@RequestParam("id") String id) {
+    public ClusterVO getCluster(@RequestParam("id") String id) {
         final ClusterID clusterID = Clusters.of(id);
         final Cluster cluster = context.getClusters().get(clusterID);
 
         LOG.info("getCluster(id: {}, found: {})", clusterID, cluster != null);
 
-        return cluster;
+        return toVO(cluster);
     }
 
     @GetMapping(path = "getAll")
@@ -73,6 +73,26 @@ public class ClusterAPI {
         final ClusterID clusterID = Clusters.of(id);
 
         clusterManager.scaleIn(clusterID);
+    }
+
+    // FIXME    remove this: for test purpose only
+    @GetMapping(path = "rsAdd")
+    public void rsAdd() {
+        final Cluster cluster = context.getClusters().values().stream()
+                .filter(c -> c instanceof ReplicaCluster)
+                .findAny()
+                .orElseThrow(Errors.throwException(IllegalStateException.class, "replica set not found"));
+
+        context.getEventBus().post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_OUT));
+    }
+
+    // FIXME    remove this: for test purpose only
+    @GetMapping(path = "rsRemove")
+    public void rsRemove() {
+        final Cluster cluster = context.getClusters().values().stream()
+                .filter(c -> c instanceof ReplicaCluster)
+                .findAny()
+                .orElseThrow(Errors.throwException(IllegalStateException.class, "replica set not found"));
     }
 
     private ClusterVO toVO(final Cluster cluster) {

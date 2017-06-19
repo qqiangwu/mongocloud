@@ -8,6 +8,7 @@ import edu.reins.mongocloud.instance.*;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
+import edu.reins.mongocloud.mongo.request.RsJoinRequest;
 import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
@@ -35,22 +36,23 @@ public class ReplicaCluster implements Cluster {
     private final Context context;
     private final List<Instance> instances;
     private final ClusterStateMachine stateMachine;
+    private final InstanceDefinition dataServerDef;
+    private final Map<String, String> env;
+    private int idSeen;
 
     @Nothrow
     public ReplicaCluster(final Cluster parent, final int idx, final Context context) {
-        final InstanceDefinition dataServerDef = Clusters.loadDefinition(context.getEnv(), DATA_SERVER_DEFINITION);
-
+        this.dataServerDef = Clusters.loadDefinition(context.getEnv(), DATA_SERVER_DEFINITION);
 
         this.id = new ClusterID(String.format("%s-shard-%d", parent.getID().getValue(), idx));
         this.parent = parent.getID();
         this.context = context;
-
-        final Map<String, String> env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
-
+        this.env = Collections.singletonMap(Clusters.ENV_RS, getID().getValue());
         this.instances = IntStream.range(0, 3)
                 .mapToObj(i -> new InstanceImpl(context, this, i, dataServerDef, env))
                 .collect(Collectors.toList());
 
+        this.idSeen = instances.size();
         this.stateMachine = buildStateMachine();
         this.stateMachine.start();
     }
@@ -105,6 +107,19 @@ public class ReplicaCluster implements Cluster {
                 .on(ClusterEventType.CHILD_FINISHED)
                 .when(Conditions.stateIs(instances, InstanceState.FINISHED))
                 .perform(Arrays.asList(new OnChildRemoved(), new OnCleanup()));
+
+        // Scale out operation
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.SCALING_OUT)
+                .on(ClusterEventType.SCALE_OUT)
+                .perform(new OnScaleOut());
+        builder.transition()
+                .from(ClusterState.SCALING_OUT).to(ClusterState.WAIT_INSTANCE)
+                .on(ClusterEventType.CHILD_RUNNING)
+                .perform(new OnChildReadyInScaleOut());
+        builder.transition()
+                .from(ClusterState.WAIT_INSTANCE).to(ClusterState.RUNNING)
+                .on(ClusterEventType.CHILD_JOINED);
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -241,6 +256,35 @@ public class ReplicaCluster implements Cluster {
             LOG.info("onFailed(id: {}, msg: {})", getID(), event.getPayload(String.class));
 
             System.exit(1);
+        }
+    }
+
+    private final class OnScaleOut extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onScaleOut(id: {}, from: {}, to: {})", getID(), instances.size(), instances.size() + 1);
+
+            LOG.info("< onScaleOut(id: {}): add new instance", getID());
+            final Instance instance =
+                    new InstanceImpl(context, ReplicaCluster.this, idSeen++, dataServerDef, env);
+
+            instances.add(instance);
+            context.getInstances().put(instance.getID(), instance);
+
+            notifyChild(instance.getID(), InstanceEventType.INIT);
+        }
+    }
+
+    private final class OnChildReadyInScaleOut extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildReadyInScaleOut(cluster: {}, child: {})", getID(), event.getPayload(InstanceID.class));
+
+            final InstanceID child = event.getPayload(InstanceID.class);
+
+            context.getMongoMediator().rsJoin(new RsJoinRequest(getID(), child));
         }
     }
 

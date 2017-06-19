@@ -8,6 +8,9 @@ public enum ClusterState {
     WAIT_ROUTER,
     WAIT_SHARDS,
 
+    // scale out replica set时用的
+    WAIT_INSTANCE,
+
     // 初始化Data cluster时的状态
     SUBMITTED,
     INIT_RS,

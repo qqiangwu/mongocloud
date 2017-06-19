@@ -2,12 +2,10 @@ package edu.reins.mongocloud.mongo;
 
 import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.mongo.command.CollectClusterCommand;
-import edu.reins.mongocloud.mongo.command.InitRsCommand;
-import edu.reins.mongocloud.mongo.command.JoinCommand;
-import edu.reins.mongocloud.mongo.command.RemoveCommand;
+import edu.reins.mongocloud.mongo.command.*;
 import edu.reins.mongocloud.mongo.request.JoinRequest;
 import edu.reins.mongocloud.mongo.request.RemoveRequest;
+import edu.reins.mongocloud.mongo.request.RsJoinRequest;
 import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +27,9 @@ public class MongoMediatorImpl implements MongoMediator {
     private JoinCommand joinCommand;
 
     @Autowired
+    private RsJoinCommand rsJoinCommand;
+
+    @Autowired
     private RemoveCommand removeCommand;
 
     @Nothrow
@@ -45,6 +46,14 @@ public class MongoMediatorImpl implements MongoMediator {
         LOG.info("join(cluster: {}, child: {})", joinRequest.getCluster(), joinRequest.getParticipant());
 
         joinCommand.exec(joinRequest);
+    }
+
+    @Nothrow
+    @Override
+    public void rsJoin(final RsJoinRequest rsJoinRequest) {
+        LOG.info("rsJoin(cluster: {}, child: {})", rsJoinRequest.getCluster(), rsJoinRequest.getInstance());
+
+        rsJoinCommand.exec(rsJoinRequest);
     }
 
     @Nothrow
