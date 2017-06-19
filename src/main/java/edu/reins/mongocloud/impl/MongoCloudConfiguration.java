@@ -1,5 +1,6 @@
 package edu.reins.mongocloud.impl;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.UncaughtExceptionHandlers;
 import lombok.val;
 import org.springframework.context.annotation.Bean;
@@ -20,19 +21,17 @@ public class MongoCloudConfiguration {
         final int queueSize = 512;
 
         val taskExecutor = new ThreadPoolTaskExecutor();
+        val threadFactoryBuilder = new ThreadFactoryBuilder();
+
+        threadFactoryBuilder.setNameFormat("POOL-%d");
+        threadFactoryBuilder.setUncaughtExceptionHandler(UncaughtExceptionHandlers.systemExit());
 
         taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         taskExecutor.setKeepAliveSeconds(60);
         taskExecutor.setCorePoolSize(corePool);
         taskExecutor.setMaxPoolSize(maxPool);
         taskExecutor.setQueueCapacity(queueSize);
-        taskExecutor.setThreadFactory(r -> {
-            final Thread t = new Thread(r);
-
-            t.setUncaughtExceptionHandler(UncaughtExceptionHandlers.systemExit());
-
-            return t;
-        });
+        taskExecutor.setThreadFactory(threadFactoryBuilder.build());
 
         return taskExecutor;
     }

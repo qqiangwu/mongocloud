@@ -46,8 +46,10 @@ public class InstanceImpl implements Instance {
         this.parentID = parent.getID();
         this.id = new InstanceID(String.format("%s-%d", parent.getID().getValue(), index));
         this.definition = definition;
-        this.stateMachine = buildStateMachine();
         this.env = env;
+        this.stateMachine = buildStateMachine();
+
+        this.stateMachine.start();
     }
 
     private InstanceStateMachine buildStateMachine() {
@@ -96,8 +98,7 @@ public class InstanceImpl implements Instance {
         readLock.lock();
 
         try {
-            val state = stateMachine.getCurrentState();
-            return state == null? stateMachine.getInitialState(): state;
+            return stateMachine.getCurrentState();
         } finally {
             readLock.unlock();
         }
@@ -139,13 +140,11 @@ public class InstanceImpl implements Instance {
         @Nothrow
         @Override
         protected void doExec(final InstanceEvent event) {
-            LOG.info("onLaunched(instance: {})", getID());
-
             final InstanceHost instanceHost = event.getPayload(InstanceHost.class);
 
             host = Optional.of(instanceHost);
 
-            LOG.info("> onLaunched(instance: {}, host: {})", getID(), instanceHost);
+            LOG.info("onLaunched(instance: {}, host: {})", getID(), instanceHost);
         }
     }
     

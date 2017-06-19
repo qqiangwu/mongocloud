@@ -3,18 +3,23 @@ package edu.reins.mongocloud.cluster;
 public enum ClusterState {
     NEW,
 
+    // 初始化shard时的状态
     WAIT_CONFIG,
     WAIT_ROUTER,
     WAIT_SHARDS,
 
+    // 初始化Data cluster时的状态
     SUBMITTED,
-
     INIT_RS,
 
+    // 运行中
     RUNNING,
 
-    CLEANUP,
-    DIED,
+    // scale时的状态
+    SCALING_OUT,
+    SCALING_IN,
 
-    FAILED
+    // 终止
+    FAILED,
+    FINISHED
 }

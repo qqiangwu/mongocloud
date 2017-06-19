@@ -190,7 +190,7 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
     @Nothrow
     @Override
     public void sync(final List<Instance> instances) {
-        // TODO
+        // TODO add sync support
     }
 
     @Nothrow
@@ -203,8 +203,6 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
                 driver.declineOffer(offer.getId());
             }
         }
-
-        LOG.trace("resourceOffers(pending: {})", pendingTasks.size());
     }
 
     @Nothrow
@@ -238,7 +236,7 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
 
     @Nothrow
     private void launchOn(final InstanceLaunchRequest request, final Offer offer) {
-        LOG.debug("> launch(id: {}, slave: {})", request.getInstanceID(), offer.getSlaveId().getValue());
+        LOG.debug("launch(id: {}, slave: {})", request.getInstanceID(), offer.getSlaveId().getValue());
 
         val taskInfo = new TaskBuilder()
                 .setDockerVolume(dockerVolume)
@@ -260,6 +258,6 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         final Protos.SlaveID slaveID = taskInfo.getSlaveId();
         final int port = taskInfo.getContainer().getDocker().getPortMappings(0).getHostPort();
 
-        return new InstanceHost(slaveID, hostIP, port);
+        return new InstanceHost(slaveID.getValue(), hostIP, port);
     }
 }

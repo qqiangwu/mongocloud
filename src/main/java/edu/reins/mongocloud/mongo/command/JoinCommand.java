@@ -38,14 +38,13 @@ public class JoinCommand {
      */
     @Retryable(MongoCommandException.class)
     public void exec(final JoinRequest joinRequest) {
-        val master = getMaster(joinRequest.getRouter().getCluster());
+        val master = getMaster(joinRequest.getRouter());
         val cmd = buildCommand(joinRequest);
 
         commandRunner.runCommand(master, cmd);
 
-        eventBus.post(new ClusterEvent(joinRequest.getCluster(),
-                ClusterEventType.CHILD_JOINED,
-                joinRequest.getParticipant()));
+        eventBus.post(new ClusterEvent(
+                joinRequest.getCluster(), ClusterEventType.CHILD_JOINED, joinRequest.getParticipant()));
     }
 
     @Nothrow

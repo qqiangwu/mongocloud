@@ -75,10 +75,10 @@ public class ClusterAPI {
 
         vo.setId(instance.getID());
         vo.setState(instance.getState());
-        vo.setType(vo.getType());
+        vo.setType(instance.getType());
 
         if (instance.getState() == InstanceState.RUNNING) {
-            vo.setHost(vo.getHost());
+            vo.setHost(instance.getHost());
         }
 
         return vo;

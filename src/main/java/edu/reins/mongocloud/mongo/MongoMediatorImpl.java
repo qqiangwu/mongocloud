@@ -39,7 +39,7 @@ public class MongoMediatorImpl implements MongoMediator {
     @Override
     public void join(final JoinRequest joinRequest) {
         LOG.info("join(router: {}, cluster: {})",
-                joinRequest.getRouter().getCluster(),
+                joinRequest.getRouter(),
                 joinRequest.getParticipant());
 
         joinCommand.exec(joinRequest);

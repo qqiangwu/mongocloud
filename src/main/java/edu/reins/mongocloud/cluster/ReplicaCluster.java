@@ -21,7 +21,6 @@ import lombok.val;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -40,14 +39,13 @@ public class ReplicaCluster implements Cluster {
     private final Context context;
     private final List<Instance> instances;
     private final ClusterStateMachine stateMachine;
-    private Optional<RouterClusterMeta> routerClusterMeta = Optional.empty();
 
     @Nothrow
     public ReplicaCluster(final Cluster parent, final int idx, final Context context) {
         final InstanceDefinition dataServerDef = Clusters.loadDefinition(context.getEnv(), DATA_SERVER_DEFINITION);
 
 
-        this.id = new ClusterID(String.format("%s::shard-%d", parent.getID().getValue(), idx));
+        this.id = new ClusterID(String.format("%s-shard-%d", parent.getID().getValue(), idx));
         this.parent = parent.getID();
         this.context = context;
 
@@ -58,6 +56,7 @@ public class ReplicaCluster implements Cluster {
                 .collect(Collectors.toList());
 
         this.stateMachine = buildStateMachine();
+        this.stateMachine.start();
     }
 
     @Nothrow
@@ -109,8 +108,7 @@ public class ReplicaCluster implements Cluster {
         readLock.lock();
 
         try {
-            val state = stateMachine.getCurrentState();
-            return state == null? stateMachine.getInitialState(): state;
+            return stateMachine.getCurrentState();
         } finally {
             readLock.unlock();
         }
@@ -148,8 +146,6 @@ public class ReplicaCluster implements Cluster {
 
             final EventBus eventBus = context.getEventBus();
             final Map<InstanceID, Instance> instanceContext = context.getInstances();
-
-            routerClusterMeta = Optional.of(event.getPayload(RouterClusterMeta.class));
 
             instances.forEach(instance -> {
                 instanceContext.put(instance.getID(), instance);

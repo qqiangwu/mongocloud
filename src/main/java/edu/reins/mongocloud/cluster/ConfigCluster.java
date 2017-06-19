@@ -52,6 +52,7 @@ public class ConfigCluster implements Cluster {
                 .collect(Collectors.toList());
 
         this.stateMachine = buildStateMachine();
+        this.stateMachine.start();
     }
 
     @Nothrow
@@ -104,8 +105,7 @@ public class ConfigCluster implements Cluster {
         readLock.lock();
 
         try {
-            val state = stateMachine.getCurrentState();
-            return state == null? stateMachine.getInitialState(): state;
+            return stateMachine.getCurrentState();
         } finally {
             readLock.unlock();
         }

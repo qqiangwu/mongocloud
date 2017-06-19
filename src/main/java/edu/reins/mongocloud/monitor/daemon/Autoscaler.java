@@ -9,11 +9,11 @@ import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.cluster.ClusterReport;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.monitor.Monitor;
-import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 
 @Daemon
@@ -31,11 +31,12 @@ public class Autoscaler {
     @Autowired
     private EventBus eventBus;
 
+    @Value("${instance.data.definition.disk}")
+    private int capacity;
+
     @Nothrow
     @Scheduled(fixedDelay = 60 * 1000)
     public void exec() {
-        LOG.trace("tryScaling");
-
         monitor.getClusters().forEach(this::tryScaling);
     }
 
@@ -52,8 +53,6 @@ public class Autoscaler {
 
     @Nothrow
     private void tryScalingImpl(final Cluster cluster) {
-        LOG.trace("< tryScaling(cluster: {})", cluster.getID());
-
         final ClusterReport report = cluster.getReport();
 
         if (isResourceDeficient(report)) {
@@ -75,7 +74,7 @@ public class Autoscaler {
 
     @Nothrow
     private void scaleOut(final Cluster cluster) {
-        LOG.info("< scaleOut(cluster: {}, from: {}, to: {})",
+        LOG.info("scaleOut(cluster: {}, from: {}, to: {})",
                 cluster.getID(), cluster.getInstances().size(), cluster.getInstances().size() + 1);
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_OUT));
@@ -83,7 +82,7 @@ public class Autoscaler {
 
     @Nothrow
     private void scaleIn(final Cluster cluster) {
-        LOG.info("< scaleIn(cluster: {}, from: {}, to: {})",
+        LOG.info("scaleIn(cluster: {}, from: {}, to: {})",
                 cluster.getID(), cluster.getInstances().size(), cluster.getInstances().size() - 1);
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_IN));
@@ -91,7 +90,6 @@ public class Autoscaler {
 
     private double getStorageUsage(final ClusterReport report) {
         val storage = report.getStorageInMB();
-        val capacity = Units.GB;
 
         return storage / (report.getShardCount() * capacity * 1.0);
     }

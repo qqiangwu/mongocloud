@@ -3,9 +3,9 @@ package edu.reins.mongocloud.monitor.daemon;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.model.ClusterID;
-import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.monitor.Monitor;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +32,6 @@ public class MetricCollector {
     @Nothrow
     @Scheduled(fixedDelay = 30 * 1000)
     public void exec() {
-        LOG.info("collectMetric");
-
         monitor.getClusters()
                 .stream()
                 .map(this::getCluster)
@@ -54,7 +52,7 @@ public class MetricCollector {
 
     @Nothrow
     private void collectClusterMetric(final Cluster cluster) {
-        LOG.info("< collectMetric(cluster: {})", cluster.getID());
+        LOG.info("collectMetric(cluster: {})", cluster.getID());
 
         mongoMediator.collect(cluster);
     }

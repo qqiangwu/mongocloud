@@ -43,18 +43,19 @@ public class ShardedCluster implements Cluster {
 
     private final ClusterReport report;
     private int joined = 0;
+    private int idSeen = 0;
 
     private final Condition<ClusterEvent> allShardsJoined = new AnonymousCondition<ClusterEvent>() {
         @Override
         public boolean isSatisfied(ClusterEvent context) {
-            return joined == shards.size();
+            return joined + 1 == shards.size();
         }
     };
 
     private final Condition<ClusterEvent> notAllShardsJoined = new AnonymousCondition<ClusterEvent>() {
         @Override
         public boolean isSatisfied(ClusterEvent context) {
-            return joined < shards.size();
+            return joined + 1 < shards.size();
         }
     };
 
@@ -71,9 +72,11 @@ public class ShardedCluster implements Cluster {
                 .mapToObj(i -> new ReplicaCluster(this, i, context))
                 .collect(Collectors.toList());
 
+        idSeen = shards.size();
         report = new ClusterReport(0, clusterDefinition.getCount());
 
         stateMachine = buildStateMachine();
+        stateMachine.start();
     }
 
     @Nothrow
@@ -116,8 +119,9 @@ public class ShardedCluster implements Cluster {
                 .from(ClusterState.WAIT_SHARDS).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_JOINED)
                 .when(allShardsJoined)
-                .perform(new OnChildReady());
+                .perform(new OnChildJoined());
 
+        // Running相关状态
         builder.onEntry(ClusterState.RUNNING)
                 .perform(new OnEnterRunning());
 
@@ -125,7 +129,25 @@ public class ShardedCluster implements Cluster {
                 .perform(new OnExitRunning());
 
         // status Update
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.RUNNING)
+                .on(ClusterEventType.UPDATE_STATUS)
+                .perform(new OnStatusUpdate());
+
+        // scale out
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.WAIT_SHARDS)
+                .on(ClusterEventType.SCALE_OUT)
+                .perform(new OnScaleOut());
+
+        // scale in
         // TODO
+        /*
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.SCALING_IN)
+                .on(ClusterEventType.SCALE_IN)
+                .perform(new OnScaleIn());
+        */
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -143,8 +165,7 @@ public class ShardedCluster implements Cluster {
         readLock.lock();
 
         try {
-            val state = stateMachine.getCurrentState();
-            return state == null? stateMachine.getInitialState(): state;
+            return stateMachine.getCurrentState();
         } finally {
             readLock.unlock();
         }
@@ -235,7 +256,7 @@ public class ShardedCluster implements Cluster {
             LOG.info("onNewChildReady(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
 
             val childID = event.getPayload(ClusterID.class);
-            val request = new JoinRequest(getID(), routerCluster.getMeta(), childID);
+            val request = new JoinRequest(getID(), routerCluster.getID(), childID);
 
             context.getMongoMediator().join(request);
         }
@@ -280,6 +301,32 @@ public class ShardedCluster implements Cluster {
             final ClusterReport newReport = event.getPayload(ClusterReport.class);
 
             report.setStorageInMB(newReport.getStorageInMB());
+        }
+    }
+
+    private final class OnScaleOut extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onScaleOut(cluster: {}, from: {}, to: {})", getID(), shards.size(), shards.size() + 1);
+
+            final int index = idSeen++;
+            final ReplicaCluster newCluster = new ReplicaCluster(ShardedCluster.this, index, context);
+
+            LOG.info("< onScaleOut(cluster: {}, new: {}): register new cluster", getID(), newCluster.getID());
+            shards.add(newCluster);
+            context.getClusters().put(newCluster.getID(), newCluster);
+
+            LOG.info("< onScaleOut(cluster: {}, new: {}): init new cluster", getID(), newCluster.getID());
+            notifyChild(newCluster, ClusterEventType.INIT);
+        }
+    }
+
+    private final class OnScaleIn extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onScaleIn(cluster: {}, from: {}, to: {})", getID(), shards.size(), shards.size() - 1);
         }
     }
 

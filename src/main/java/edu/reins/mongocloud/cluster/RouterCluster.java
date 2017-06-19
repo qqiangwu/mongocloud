@@ -18,7 +18,6 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -42,6 +41,8 @@ public class RouterCluster implements Cluster {
         this.context = context;
         this.instances = new ArrayList<>();
         this.stateMachine = buildStateMachine();
+
+        this.stateMachine.start();
     }
 
     @Nothrow
@@ -82,8 +83,7 @@ public class RouterCluster implements Cluster {
         readLock.lock();
 
         try {
-            val state = stateMachine.getCurrentState();
-            return state == null? stateMachine.getInitialState(): state;
+            return stateMachine.getCurrentState();
         } finally {
             readLock.unlock();
         }
@@ -110,28 +110,6 @@ public class RouterCluster implements Cluster {
             stateMachine.fire(event.getType(), event);
         } finally {
             writeLock.unlock();
-        }
-    }
-
-    /**
-     * @throws IllegalStateException    if the cluster is not running
-     */
-    public RouterClusterMeta getMeta() {
-        readLock.lock();
-
-        try {
-            if (!getState().equals(ClusterState.RUNNING)) {
-                throw new IllegalStateException("Router cluster is not running");
-            }
-
-            final List<String> members = instances.stream()
-                    .map(Instance::getHost)
-                    .map(host -> String.format("%s:%d", host.getIp(), host.getPort()))
-                    .collect(Collectors.toList());
-
-            return new RouterClusterMeta(parent, members);
-        } finally {
-            readLock.unlock();
         }
     }
 
