@@ -60,7 +60,8 @@ public class AsyncEventBus implements EventBus {
                     LOG.info("pipelineProcessor interrupted");
                     return;
                 } catch (RuntimeException e) {
-                    LOG.warn("unexpected exception(msg: {})", e.getMessage(), e);
+                    LOG.error("unexpected exception(msg: {}): fail fast now", e.getMessage(), e);
+
                     System.exit(1);
                 }
             }

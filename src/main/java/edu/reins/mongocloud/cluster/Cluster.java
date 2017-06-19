@@ -1,13 +1,13 @@
 package edu.reins.mongocloud.cluster;
 
-import edu.reins.mongocloud.Actor;
+import edu.reins.mongocloud.Fsm;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 
 import java.util.List;
 
-public interface Cluster extends Actor<ClusterEvent> {
+public interface Cluster extends Fsm<ClusterState, ClusterEvent> {
     ClusterID getID();
     ClusterState getState();
     List<Instance> getInstances();

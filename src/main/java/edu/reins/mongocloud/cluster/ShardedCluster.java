@@ -123,11 +123,9 @@ public class ShardedCluster implements Cluster {
                 .perform(new OnChildJoined());
 
         // Running相关状态
-        builder.onEntry(ClusterState.RUNNING)
-                .perform(new OnEnterRunning());
+        builder.onEntry(ClusterState.RUNNING).perform(new OnEnterRunning());
 
-        builder.onExit(ClusterState.RUNNING)
-                .perform(new OnExitRunning());
+        builder.onExit(ClusterState.RUNNING).perform(new OnExitRunning());
 
         // status Update
         builder.transition()
@@ -146,6 +144,10 @@ public class ShardedCluster implements Cluster {
                 .from(ClusterState.RUNNING).to(ClusterState.SCALING_IN)
                 .on(ClusterEventType.SCALE_IN)
                 .perform(new OnScaleIn());
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.RUNNING)
+                .on(ClusterEventType.SCALE_IN)
+                .when(Conditions.sizeIs(shards, 1));
         builder.transition()
                 .from(ClusterState.SCALING_IN).to(ClusterState.RECYCLE)
                 .on(ClusterEventType.CHILD_REMOVED)
@@ -282,7 +284,7 @@ public class ShardedCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            if (from != ClusterState.RUNNING) {
+            if (getState() != ClusterState.RUNNING) {
                 LOG.info("onEnterRunning(cluster: {}): register to the monitor", getID());
 
                 context.getMonitor().register(getID());
@@ -294,7 +296,7 @@ public class ShardedCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            if (from != ClusterState.RUNNING) {
+            if (getState() != ClusterState.RUNNING) {
                 LOG.info("onExitRunning(cluster: {}): unregister to the monitor", getID());
 
                 context.getMonitor().unregister(getID());
@@ -338,7 +340,8 @@ public class ShardedCluster implements Cluster {
          */
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onScaleIn(cluster: {}, from: {}, to: {})", getID(), shards.size(), shards.size() - 1);
+            LOG.info("onScaleIn(cluster: {}, from: {}, to: {}): remove child",
+                    getID(), shards.size(), shards.size() - 1);
 
             if (shards.size() <= 1) {
                 throw new IllegalStateException("Scale in not allowed");
@@ -356,7 +359,8 @@ public class ShardedCluster implements Cluster {
          */
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onChildRemoved(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+            LOG.info("onChildRemoved(cluster: {}, child: {}): kill child",
+                    getID(), event.getPayload(ClusterID.class));
 
             final ClusterID victimID = event.getPayload(ClusterID.class);
             final ReplicaCluster victim = shards.stream()
@@ -374,7 +378,8 @@ public class ShardedCluster implements Cluster {
          */
         @Override
         protected void doExec(ClusterEvent event) {
-            LOG.info("onChildRemoved(cluster: {}, child: {})", getID(), event.getPayload(ClusterID.class));
+            LOG.info("onChildRemoved(cluster: {}, child: {}): remove child from context",
+                    getID(), event.getPayload(ClusterID.class));
 
             final ClusterID victimID = event.getPayload(ClusterID.class);
             final ReplicaCluster victim = shards.stream()
@@ -385,6 +390,8 @@ public class ShardedCluster implements Cluster {
             --joined;
             shards.remove(victim);
             context.getClusters().remove(victimID);
+
+            LOG.info("scaleInDone(cluster: {}, child: {})", getID(), victimID);
         }
     }
 

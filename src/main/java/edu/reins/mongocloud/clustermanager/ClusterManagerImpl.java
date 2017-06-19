@@ -1,9 +1,9 @@
 package edu.reins.mongocloud.clustermanager;
 
-import edu.reins.mongocloud.Actor;
 import edu.reins.mongocloud.ClusterManager;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.Fsm;
 import edu.reins.mongocloud.cluster.*;
 import edu.reins.mongocloud.clustermanager.exception.ClusterIDConflictException;
 import edu.reins.mongocloud.clustermanager.exception.ClusterNotFoundException;
@@ -23,7 +23,7 @@ import javax.annotation.PostConstruct;
 
 @Component
 @Slf4j
-public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerEvent> {
+public class ClusterManagerImpl implements ClusterManager, Fsm<ClusterManagerState, ClusterManagerEvent> {
     @Autowired
     private EventBus eventBus;
 
@@ -72,6 +72,12 @@ public class ClusterManagerImpl implements ClusterManager, Actor<ClusterManagerE
     @Override
     public synchronized void handle(final ClusterManagerEvent event) {
         stateMachine.fire(event.getType());
+    }
+
+    @Nothrow
+    @Override
+    public synchronized ClusterManagerState getState() {
+        return stateMachine.getCurrentState();
     }
 
     @Nothrow

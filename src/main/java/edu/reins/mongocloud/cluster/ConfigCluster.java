@@ -67,13 +67,13 @@ public class ConfigCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.SUBMITTED)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.instancesNotFullyRunning(instances))
+                .when(Conditions.statePartiallyIs(instances, InstanceState.RUNNING))
                 .perform(new OnChildReady());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.INIT_RS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances))
+                .when(Conditions.stateIs(instances, InstanceState.RUNNING))
                 .perform(Arrays.asList(new OnChildReady(), new OnAllChildrenReady()));
 
         // from INIT_RS: wait all instances to join the replica set

@@ -68,13 +68,13 @@ public class ReplicaCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.SUBMITTED)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.instancesNotFullyRunning(instances))
+                .when(Conditions.statePartiallyIs(instances, InstanceState.RUNNING))
                 .perform(new OnChildReady());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.INIT_RS)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances))
+                .when(Conditions.stateIs(instances, InstanceState.RUNNING))
                 .perform(new OnChildrenRunning());
 
         // from INIT_RS: wait all instances to join the replica set
@@ -88,6 +88,7 @@ public class ReplicaCluster implements Cluster {
                 .on(ClusterEventType.FAIL)
                 .perform(new OnFailed());
 
+        // Kill operation
         builder.transition()
                 .from(ClusterState.RUNNING).to(ClusterState.RECYCLE)
                 .on(ClusterEventType.KILL)
@@ -96,13 +97,13 @@ public class ReplicaCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.RECYCLE).to(ClusterState.RECYCLE)
                 .on(ClusterEventType.CHILD_FINISHED)
-                .when(Conditions.partWithState(instances, InstanceState.FINISHED))
+                .when(Conditions.statePartiallyIs(instances, InstanceState.FINISHED))
                 .perform(new OnChildRemoved());
 
         builder.transition()
                 .from(ClusterState.RECYCLE).to(ClusterState.FINISHED)
                 .on(ClusterEventType.CHILD_FINISHED)
-                .when(Conditions.allWithState(instances, InstanceState.FINISHED))
+                .when(Conditions.stateIs(instances, InstanceState.FINISHED))
                 .perform(Arrays.asList(new OnChildRemoved(), new OnCleanup()));
 
         // done
@@ -248,6 +249,6 @@ public class ReplicaCluster implements Cluster {
     }
 
     private void notifyParent(final ClusterEventType event) {
-        context.getEventBus().post(new ClusterEvent(parent, event));
+        context.getEventBus().post(new ClusterEvent(parent, event, getID()));
     }
 }

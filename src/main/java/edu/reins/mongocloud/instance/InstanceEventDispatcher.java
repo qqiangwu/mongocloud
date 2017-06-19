@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-/**
- * @author wuqq
- */
 @Component
 @Slf4j
 public class InstanceEventDispatcher implements Actor<InstanceEvent> {

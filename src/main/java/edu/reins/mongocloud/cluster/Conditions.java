@@ -1,8 +1,7 @@
 package edu.reins.mongocloud.cluster;
 
 import edu.reins.mongocloud.Event;
-import edu.reins.mongocloud.instance.Instance;
-import edu.reins.mongocloud.instance.InstanceState;
+import edu.reins.mongocloud.Fsm;
 import edu.reins.mongocloud.model.ClusterID;
 import org.squirrelframework.foundation.fsm.AnonymousCondition;
 import org.squirrelframework.foundation.fsm.Condition;
@@ -24,51 +23,31 @@ public abstract class Conditions {
         };
     }
 
-    public static <T extends Event> Condition<T> allInstancesRunning(final List<? extends Instance> instances) {
-        return new Condition<T>() {
-            @Override
-            public boolean isSatisfied(T t) {
-                return instances.stream().allMatch(instance -> instance.getState().equals(InstanceState.RUNNING));
-            }
-
-            @Override
-            public String name() {
-                return "Condition::allInstancesRunning";
-            }
-        };
-    }
-
-    public static <T extends Event> Condition<T> instancesNotFullyRunning(final List<? extends Instance> instances) {
-        return new Condition<T>() {
-            @Override
-            public boolean isSatisfied(T t) {
-                return instances.stream()
-                        .anyMatch(instance -> !instance.getState().equals(InstanceState.RUNNING));
-            }
-
-            @Override
-            public String name() {
-                return "Condition::instancesNotFullyRunning";
-            }
-        };
-    }
-
-    public static <T extends Event> Condition<T> allWithState(
-            final List<? extends Instance> instances, final InstanceState state) {
+    public static <T extends Event> Condition<T> sizeIs(final List<?> list, final int size) {
         return new AnonymousCondition<T>() {
             @Override
-            public boolean isSatisfied(final T t) {
-                return instances.stream().allMatch(i -> i.getState() == state);
+            public boolean isSatisfied(T t) {
+                return list.size() == size;
             }
         };
     }
 
-    public static <T extends Event> Condition<T> partWithState(
-            final List<? extends Instance> instances, final InstanceState state) {
+    public static <T extends Event, S extends Enum<S>> Condition<T> stateIs(
+            final List<? extends Fsm<S, ?>> list, final S state) {
         return new AnonymousCondition<T>() {
             @Override
-            public boolean isSatisfied(final T t) {
-                return instances.stream().anyMatch(i -> i.getState() != state);
+            public boolean isSatisfied(T t) {
+                return list.stream().allMatch(fsm -> fsm.getState() == state);
+            }
+        };
+    }
+
+    public static <T extends Event, S extends Enum<S>> Condition<T> statePartiallyIs(
+            final List<? extends Fsm<S, ?>> list, final S state) {
+        return new AnonymousCondition<T>() {
+            @Override
+            public boolean isSatisfied(T t) {
+                return list.stream().anyMatch(fsm -> fsm.getState() != state);
             }
         };
     }

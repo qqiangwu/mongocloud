@@ -3,10 +3,7 @@ package edu.reins.mongocloud.cluster;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.cluster.fsm.ClusterAction;
 import edu.reins.mongocloud.cluster.fsm.ClusterStateMachine;
-import edu.reins.mongocloud.instance.Instance;
-import edu.reins.mongocloud.instance.InstanceEvent;
-import edu.reins.mongocloud.instance.InstanceEventType;
-import edu.reins.mongocloud.instance.InstanceImpl;
+import edu.reins.mongocloud.instance.*;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
@@ -58,13 +55,13 @@ public class RouterCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.SUBMITTED)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.instancesNotFullyRunning(instances))
+                .when(Conditions.statePartiallyIs(instances, InstanceState.RUNNING))
                 .perform(new OnNewChildReady());
 
         builder.transition()
                 .from(ClusterState.SUBMITTED).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_RUNNING)
-                .when(Conditions.allInstancesRunning(instances))
+                .when(Conditions.stateIs(instances, InstanceState.RUNNING))
                 .perform(Arrays.asList(new OnNewChildReady(), new OnRunning()));
 
         // done

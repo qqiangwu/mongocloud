@@ -1,10 +1,10 @@
 package edu.reins.mongocloud.instance;
 
-import edu.reins.mongocloud.Actor;
+import edu.reins.mongocloud.Fsm;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 
-public interface Instance extends Actor<InstanceEvent> {
+public interface Instance extends Fsm<InstanceState, InstanceEvent>{
     InstanceID getID();
     InstanceState getState();
     InstanceType getType();
