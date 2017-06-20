@@ -31,6 +31,7 @@ public class InstanceImpl implements Instance {
     private final Context context;
     private final ClusterID parentID;
     private final InstanceID id;
+    private final int localId;
     private final InstanceDefinition definition;
     private final InstanceStateMachine stateMachine;
     private final Map<String, String> env;
@@ -45,6 +46,7 @@ public class InstanceImpl implements Instance {
         this.context = context;
         this.parentID = parent.getID();
         this.id = new InstanceID(String.format("%s-%d", parent.getID().getValue(), index));
+        this.localId = index;
         this.definition = definition;
         this.env = env;
         this.stateMachine = buildStateMachine();
@@ -101,6 +103,11 @@ public class InstanceImpl implements Instance {
     @Override
     public InstanceID getID() {
         return id;
+    }
+
+    @Override
+    public int getLocalID() {
+        return localId;
     }
 
     @Override

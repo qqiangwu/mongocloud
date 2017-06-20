@@ -1,10 +1,7 @@
 package edu.reins.mongocloud;
 
 import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.mongo.request.JoinRequest;
-import edu.reins.mongocloud.mongo.request.RemoveRequest;
-import edu.reins.mongocloud.mongo.request.RsJoinRequest;
-import edu.reins.mongocloud.mongo.request.RsRequest;
+import edu.reins.mongocloud.mongo.request.*;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -19,6 +16,9 @@ public interface MongoMediator {
 
     @Nothrow
     void rsJoin(RsJoinRequest rsJoinRequest);
+
+    @Nothrow
+    void rsRemove(RsRemoveRequest rsRemoveRequest);
 
     @Nothrow
     void remove(RemoveRequest removeRequest);

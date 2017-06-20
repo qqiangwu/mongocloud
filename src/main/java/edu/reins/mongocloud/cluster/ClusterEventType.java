@@ -8,7 +8,7 @@ public enum ClusterEventType {
     CHILD_RUNNING,
     // 子集群join成功
     CHILD_JOINED,
-    // 子集群被成功移除
+    // 子集群被成功移除出MongoCluster，接下来需要将它关闭
     CHILD_REMOVED,
     // 子集群已经被关闭
     CHILD_FINISHED,

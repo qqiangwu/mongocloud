@@ -64,7 +64,7 @@ public class InitRsCommand {
     private BasicDBObject buildCmdForInitRs(final RsRequest rsRequest) {
         val members = rsRequest.getMembers().stream()
                 .map(instance -> new BasicDBObject()
-                        .append("_id", rsRequest.getMembers().indexOf(instance))
+                        .append("_id", instance.getLocalID())
                         .append("host", Instances.toAddress(instance)))
                 .collect(Collectors.toList());
 

@@ -93,6 +93,8 @@ public class ClusterAPI {
                 .filter(c -> c instanceof ReplicaCluster)
                 .findAny()
                 .orElseThrow(Errors.throwException(IllegalStateException.class, "replica set not found"));
+
+        context.getEventBus().post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_IN));
     }
 
     private ClusterVO toVO(final Cluster cluster) {

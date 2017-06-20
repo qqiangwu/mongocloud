@@ -6,6 +6,7 @@ import edu.reins.mongocloud.model.InstanceID;
 
 public interface Instance extends Fsm<InstanceState, InstanceEvent>{
     InstanceID getID();
+    int getLocalID();
     InstanceState getState();
     InstanceType getType();
     InstanceDefinition getDefinition();

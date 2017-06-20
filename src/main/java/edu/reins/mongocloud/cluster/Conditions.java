@@ -32,6 +32,15 @@ public abstract class Conditions {
         };
     }
 
+    public static <T extends Event> Condition<T> sizeGreaterThan(final List<?> list, final int size) {
+        return new AnonymousCondition<T>() {
+            @Override
+            public boolean isSatisfied(T context) {
+                return list.size() > size;
+            }
+        };
+    }
+
     public static <T extends Event, S extends Enum<S>> Condition<T> stateIs(
             final List<? extends Fsm<S, ?>> list, final S state) {
         return new AnonymousCondition<T>() {

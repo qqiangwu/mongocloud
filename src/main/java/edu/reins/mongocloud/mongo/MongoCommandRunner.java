@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MongoCommandRunner {
+    private static final BasicDBObject DB_CMD_GETCONF = new BasicDBObject().append("replSetGetConfig", 1);
     private static final String DB_ADMIN = "admin";
 
     /**
@@ -21,5 +22,9 @@ public class MongoCommandRunner {
         val db = mongo.getDatabase(DB_ADMIN);
 
         return db.runCommand(cmd);
+    }
+
+    public Document getConfig(final InstanceHost host) {
+        return runCommand(host, DB_CMD_GETCONF).get("config", Document.class);
     }
 }

@@ -9,11 +9,10 @@ import edu.reins.mongocloud.cluster.ClusterEvent;
 import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceHost;
-import edu.reins.mongocloud.instance.Instances;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.mongo.MongoCommandRunner;
-import edu.reins.mongocloud.mongo.request.RsJoinRequest;
+import edu.reins.mongocloud.mongo.request.RsRemoveRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -27,7 +26,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class RsJoinCommand {
+public class RsRemoveCommand {
     @Autowired
     private EventBus eventBus;
 
@@ -42,32 +41,32 @@ public class RsJoinCommand {
      * @throws RuntimeException      if programming error occurs
      */
     @Retryable(MongoCommandException.class)
-    public void exec(final RsJoinRequest joinRequest) {
-        final InstanceHost master = getMaster(joinRequest.getCluster());
+    public void exec(final RsRemoveRequest request) {
+        final InstanceHost master = getMaster(request.getCluster());
         final Document conf = commandRunner.getConfig(master);
-        final BasicDBObject cmd = buildCommand(joinRequest, conf);
+        final BasicDBObject cmd = buildCommand(request, conf);
 
         commandRunner.runCommand(master, cmd);
 
         eventBus.post(
-                new ClusterEvent(joinRequest.getCluster(), ClusterEventType.CHILD_JOINED, joinRequest.getInstance()));
+                new ClusterEvent(request.getCluster(), ClusterEventType.CHILD_REMOVED, request.getInstance()));
     }
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final RsJoinRequest joinRequest) {
-        LOG.error("< rsJoin(cluster: {}, child: {})", joinRequest.getCluster(), joinRequest.getInstance(), e);
+    public void recover(final MongoCommandException e, final RsRemoveRequest request) {
+        LOG.error("< rsRemove(cluster: {}, child: {})", request.getCluster(), request.getInstance(), e);
 
-        eventBus.post(new ClusterEvent(joinRequest.getCluster(), ClusterEventType.FAIL, e.getMessage()));
+        eventBus.post(new ClusterEvent(request.getCluster(), ClusterEventType.FAIL, e.getMessage()));
     }
 
     /**
      * @throws IllegalArgumentException     if the clusterID or the instanceID not exist
      */
-    private BasicDBObject buildCommand(final RsJoinRequest request, final Document conf) {
-        final Instance infant = getInstance(request.getInstance());
+    private BasicDBObject buildCommand(final RsRemoveRequest request, final Document conf) {
+        final Instance victim = getInstance(request.getInstance());
 
-        changeMembers(conf, infant);
+        changeMembers(conf, victim);
         changeVersion(conf);
 
         return new BasicDBObject("replSetReconfig", conf);
@@ -75,11 +74,10 @@ public class RsJoinCommand {
 
     @Nothrow
     @SuppressWarnings("unchecked")
-    private void changeMembers(final Document conf, final Instance infant) {
-        final List members = conf.get("members", List.class);
-        final BasicDBObject member = toBson(infant);
+    private void changeMembers(final Document conf, final Instance victim) {
+        final List<Document> members = conf.get("members", List.class);
 
-        members.add(member);
+        members.removeIf(d -> d.get("_id").equals(victim.getLocalID()));
 
         conf.put("members", members);
     }
@@ -89,23 +87,6 @@ public class RsJoinCommand {
         final int version = conf.getInteger("version");
 
         conf.put("version", version + 1);
-    }
-
-    @Nothrow
-    private BasicDBObject toBson(final Instance infant) {
-        final int idx = infant.getLocalID();
-
-        return new BasicDBObject()
-                .append("_id", idx)
-                .append("host", Instances.toAddress(infant));
-    }
-
-    @Nothrow
-    private int getIndex(final Instance infant) {
-        final String id = infant.getID().getValue();
-        final int pos = id.lastIndexOf('-');
-
-        return Integer.parseInt(id.substring(pos + 1));
     }
 
     /**

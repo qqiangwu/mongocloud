@@ -3,10 +3,7 @@ package edu.reins.mongocloud.mongo;
 import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.mongo.command.*;
-import edu.reins.mongocloud.mongo.request.JoinRequest;
-import edu.reins.mongocloud.mongo.request.RemoveRequest;
-import edu.reins.mongocloud.mongo.request.RsJoinRequest;
-import edu.reins.mongocloud.mongo.request.RsRequest;
+import edu.reins.mongocloud.mongo.request.*;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +25,9 @@ public class MongoMediatorImpl implements MongoMediator {
 
     @Autowired
     private RsJoinCommand rsJoinCommand;
+
+    @Autowired
+    private RsRemoveCommand rsRemoveCommand;
 
     @Autowired
     private RemoveCommand removeCommand;
@@ -55,6 +55,15 @@ public class MongoMediatorImpl implements MongoMediator {
 
         rsJoinCommand.exec(rsJoinRequest);
     }
+
+    @Nothrow
+    @Override
+    public void rsRemove(final RsRemoveRequest request) {
+        LOG.info("rsRemove(cluster: {}, child: {})", request.getCluster(), request.getInstance());
+
+        rsRemoveCommand.exec(request);
+    }
+
 
     @Nothrow
     @Override

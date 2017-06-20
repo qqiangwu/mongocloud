@@ -9,6 +9,7 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.mongo.request.RsJoinRequest;
+import edu.reins.mongocloud.mongo.request.RsRemoveRequest;
 import edu.reins.mongocloud.mongo.request.RsRequest;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
@@ -100,13 +101,13 @@ public class ReplicaCluster implements Cluster {
                 .from(ClusterState.RECYCLE).to(ClusterState.RECYCLE)
                 .on(ClusterEventType.CHILD_FINISHED)
                 .when(Conditions.statePartiallyIs(instances, InstanceState.FINISHED))
-                .perform(new OnChildRemoved());
+                .perform(new OnChildFinished());
 
         builder.transition()
                 .from(ClusterState.RECYCLE).to(ClusterState.FINISHED)
                 .on(ClusterEventType.CHILD_FINISHED)
                 .when(Conditions.stateIs(instances, InstanceState.FINISHED))
-                .perform(Arrays.asList(new OnChildRemoved(), new OnCleanup()));
+                .perform(Arrays.asList(new OnChildFinished(), new OnCleanup()));
 
         // Scale out operation
         builder.transition()
@@ -120,6 +121,25 @@ public class ReplicaCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.WAIT_INSTANCE).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_JOINED);
+
+        // Scale in operation
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.RUNNING)
+                .on(ClusterEventType.SCALE_IN)
+                .when(Conditions.sizeIs(instances, 1));
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.SCALING_IN)
+                .on(ClusterEventType.SCALE_IN)
+                .when(Conditions.sizeGreaterThan(instances, 1))
+                .perform(new OnScaleIn());
+        builder.transition()
+                .from(ClusterState.SCALING_IN).to(ClusterState.SCALING_IN)
+                .on(ClusterEventType.CHILD_REMOVED)
+                .perform(new OnChildRemoved());
+        builder.transition()
+                .from(ClusterState.SCALING_IN).to(ClusterState.RUNNING)
+                .on(ClusterEventType.CHILD_FINISHED)
+                .perform(new OnChildFinished());
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -224,7 +244,7 @@ public class ReplicaCluster implements Cluster {
         }
     }
 
-    private final class OnChildRemoved extends ClusterAction {
+    private final class OnChildFinished extends ClusterAction {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
@@ -285,6 +305,35 @@ public class ReplicaCluster implements Cluster {
             final InstanceID child = event.getPayload(InstanceID.class);
 
             context.getMongoMediator().rsJoin(new RsJoinRequest(getID(), child));
+        }
+    }
+
+    private final class OnScaleIn extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onScaleIn(cluster: {}, from: {}, to: {}): remove a child",
+                    getID(), instances.size(), instances.size() - 1);
+
+            final InstanceID victim = instances.get(instances.size() - 1).getID();
+
+            context.getMongoMediator().rsRemove(new RsRemoveRequest(getID(), victim));
+        }
+    }
+
+    private final class OnChildRemoved extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            LOG.info("onChildRemoved(cluster: {}, child: {}): kill the child",
+                    getID(), event.getPayload(InstanceID.class));
+
+            final InstanceID victim = event.getPayload(InstanceID.class);
+
+            instances.stream()
+                    .map(Instance::getID)
+                    .filter(victim::equals)
+                    .forEach(id -> notifyChild(id, InstanceEventType.KILL));
         }
     }
 
