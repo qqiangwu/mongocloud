@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Slf4j
 @ToString
 public class InstanceImpl implements Instance {
+    private static final InstanceReport DEFAULT_REPORT = new InstanceReport(0, 0, 0);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Lock readLock = lock.readLock();
     private final Lock writeLock = lock.writeLock();
@@ -36,6 +37,7 @@ public class InstanceImpl implements Instance {
     private final InstanceStateMachine stateMachine;
     private final Map<String, String> env;
     private Optional<InstanceHost> host = Optional.empty();
+    private InstanceReport report = DEFAULT_REPORT;
 
     public InstanceImpl(
             final Context context,
@@ -85,6 +87,12 @@ public class InstanceImpl implements Instance {
                 .from(InstanceState.DIEING).to(InstanceState.FINISHED)
                 .on(InstanceEventType.KILLED)
                 .perform(new OnCleanup());
+
+        // on UPDATE_STATUS
+        builder.transition()
+                .from(InstanceState.RUNNING).to(InstanceState.RUNNING)
+                .on(InstanceEventType.UPDATE_STATUS)
+                .perform(new OnUpdateStatus());
 
         // done
         return builder.newStateMachine(InstanceState.NEW, this, context);
@@ -195,6 +203,16 @@ public class InstanceImpl implements Instance {
             LOG.info("onCleanup(instance: {})", getID());
 
             context.getEventBus().post(new ClusterEvent(parentID, ClusterEventType.CHILD_FINISHED, getID()));
+        }
+    }
+
+    private final class OnUpdateStatus extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            LOG.info("onUpdateStatus(instance: {})", getID());
+
+            report = event.getPayload(InstanceReport.class);
         }
     }
 }

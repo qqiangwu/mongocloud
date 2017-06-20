@@ -14,5 +14,8 @@ public enum InstanceEventType {
     ERROR,
 
     // by cluster
-    KILL
+    KILL,
+
+    // by monitor
+    UPDATE_STATUS
 }
