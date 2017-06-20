@@ -248,7 +248,7 @@ public class ReplicaCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onChildRemoved(cluster: {}, child: {}): unregister the instance",
+            LOG.info("onChildFinished(cluster: {}, child: {}): unregister the instance",
                     getID(), event.getPayload(InstanceID.class));
 
             final InstanceID child = event.getPayload(InstanceID.class);

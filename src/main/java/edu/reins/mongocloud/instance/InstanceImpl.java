@@ -57,7 +57,7 @@ public class InstanceImpl implements Instance {
     private InstanceStateMachine buildStateMachine() {
         val builder = InstanceStateMachine.create();
 
-        // on init
+        // operation INIT
         builder.transition()
                 .from(InstanceState.NEW).to(InstanceState.SUBMITTED)
                 .on(InstanceEventType.INIT)
@@ -75,6 +75,7 @@ public class InstanceImpl implements Instance {
                 .on(InstanceEventType.RUNNING)
                 .perform(new OnRunning());
 
+        // operation KILL
         builder.transitions()
                 .fromAmong(InstanceState.values()).to(InstanceState.DIEING)
                 .on(InstanceEventType.KILL)
