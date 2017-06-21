@@ -74,16 +74,14 @@ public class ClusterAutoscaler {
 
     @Nothrow
     private void scaleOut(final Cluster cluster) {
-        LOG.info("scaleOut(cluster: {}, from: {}, to: {})",
-                cluster.getID(), cluster.getInstances().size(), cluster.getInstances().size() + 1);
+        LOG.info("scaleOut(cluster: {}): add a new shard", cluster.getID());
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_OUT));
     }
 
     @Nothrow
     private void scaleIn(final Cluster cluster) {
-        LOG.info("scaleIn(cluster: {}, from: {}, to: {})",
-                cluster.getID(), cluster.getInstances().size(), cluster.getInstances().size() - 1);
+        LOG.info("scaleIn(cluster: {}): remove a shard", cluster.getID());
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_IN));
     }

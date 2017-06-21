@@ -1,9 +1,8 @@
 package edu.reins.mongocloud.instance;
 
 import edu.reins.mongocloud.Context;
-import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.cluster.ClusterEvent;
-import edu.reins.mongocloud.cluster.ClusterEventType;
+import edu.reins.mongocloud.cluster.*;
+import edu.reins.mongocloud.cluster.fsm.ClusterAction;
 import edu.reins.mongocloud.instance.fsm.InstanceAction;
 import edu.reins.mongocloud.instance.fsm.InstanceStateMachine;
 import edu.reins.mongocloud.model.ClusterID;
@@ -81,6 +80,11 @@ public class InstanceImpl implements Instance {
                 .on(InstanceEventType.RUNNING)
                 .perform(new OnRunning());
 
+        // register to the monitor
+        builder.onEntry(InstanceState.RUNNING).perform(new OnEnterRunning());
+
+        builder.onExit(InstanceState.RUNNING).perform(new OnExitRunning());
+
         // operation KILL
         builder.transitions()
                 .fromAmong(InstanceState.values()).to(InstanceState.DIEING)
@@ -142,6 +146,17 @@ public class InstanceImpl implements Instance {
     @Override
     public InstanceDefinition getDefinition() {
         return definition;
+    }
+
+    @Override
+    public InstanceReport getReport() {
+        readLock.lock();
+
+        try {
+            return report.clone();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /**
@@ -242,6 +257,30 @@ public class InstanceImpl implements Instance {
             final InstanceReport update = event.getPayload(InstanceReport.class);
 
             Beans.overrideIfNonNull(update, report);
+        }
+    }
+
+    private final class OnEnterRunning extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            if (getState() != InstanceState.RUNNING) {
+                LOG.info("onEnterRunning(instance: {}): register to the monitor", getID());
+
+                context.getMonitor().register(getID());
+            }
+        }
+    }
+
+    private final class OnExitRunning extends InstanceAction {
+        @Nothrow
+        @Override
+        protected void doExec(final InstanceEvent event) {
+            if (getState() != InstanceState.RUNNING) {
+                LOG.info("onExitRunning(instance: {}): unregister to the monitor", getID());
+
+                context.getMonitor().unregister(getID());
+            }
         }
     }
 }

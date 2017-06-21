@@ -9,13 +9,19 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class MongoCloudConfiguration {
     @Bean
-    public TaskExecutor taskExecutor() {
+    public Thread.UncaughtExceptionHandler uncaughtExceptionHandler() {
+        return UncaughtExceptionHandlers.systemExit();
+    }
+
+    @Bean
+    public TaskExecutor taskExecutor(final Thread.UncaughtExceptionHandler uncaughtExceptionHandler) {
         final int corePool = 4;
         final int maxPool = 32;
         final int queueSize = 512;
@@ -24,7 +30,7 @@ public class MongoCloudConfiguration {
         val threadFactoryBuilder = new ThreadFactoryBuilder();
 
         threadFactoryBuilder.setNameFormat("POOL-%d");
-        threadFactoryBuilder.setUncaughtExceptionHandler(UncaughtExceptionHandlers.systemExit());
+        threadFactoryBuilder.setUncaughtExceptionHandler(uncaughtExceptionHandler);
 
         taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         taskExecutor.setKeepAliveSeconds(60);
@@ -37,14 +43,19 @@ public class MongoCloudConfiguration {
     }
 
     @Bean
-    public TaskScheduler taskScheduler() {
+    public TaskScheduler taskScheduler(final Thread.UncaughtExceptionHandler uncaughtExceptionHandler) {
         val scheduler = new ThreadPoolTaskScheduler();
 
         scheduler.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         scheduler.setPoolSize(8);
         scheduler.setThreadNamePrefix("SCHED-");
-        scheduler.setErrorHandler(throwable -> System.exit(1));
+        scheduler.setErrorHandler(t -> uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), t));
 
         return scheduler;
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

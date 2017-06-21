@@ -25,7 +25,6 @@ import java.util.stream.IntStream;
 // TODO     添加Submitted状态中config/router/replica的失效问题
 // TODO     添加由Running向Died的转换
 // TODO     从Context中移除Cluster
-// TODO     SCALE_IN/SCALE_OUT
 @Slf4j
 public class ShardedCluster implements Cluster {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
