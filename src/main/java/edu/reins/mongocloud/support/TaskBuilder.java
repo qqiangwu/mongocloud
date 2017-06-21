@@ -153,21 +153,34 @@ public class TaskBuilder {
 
     @Nothrow
     private Protos.ContainerInfo.Builder buildContainer(final Protos.ContainerInfo.DockerInfo.PortMapping portMapping) {
-        val docker = Protos.ContainerInfo.DockerInfo.newBuilder()
+        val dockerBuilder = Protos.ContainerInfo.DockerInfo.newBuilder()
                 .setImage(definition.getImage())
                 .setNetwork(Protos.ContainerInfo.DockerInfo.Network.BRIDGE)
                 .setForcePullImage(false)
-                .addPortMappings(portMapping)
-                .build();
+                .addPortMappings(portMapping);
 
+        attachDockerParameters(dockerBuilder);
+
+        // FIXME        add volume support
+        /*
         val dockerVolume = Protos.Volume.newBuilder()
                 .setContainerPath(volume)
                 .setMode(Protos.Volume.Mode.RW)
                 .build();
+        */
 
         return Protos.ContainerInfo.newBuilder()
                 .setType(Protos.ContainerInfo.Type.DOCKER)
                 //.addVolumes(dockerVolume)
-                .setDocker(docker);
+                .setDocker(dockerBuilder);
+    }
+
+    @Nothrow
+    private void attachDockerParameters(final Protos.ContainerInfo.DockerInfo.Builder builder) {
+        final int cpuPeriod = 10_000;
+        final int cpuQuota = (int)(cpuPeriod * definition.getCpus());
+
+        builder.addParametersBuilder().setKey("cpu-period").setValue(String.valueOf(cpuPeriod)).build();
+        builder.addParametersBuilder().setKey("cpu-quota").setValue(String.valueOf(cpuQuota)).build();
     }
 }

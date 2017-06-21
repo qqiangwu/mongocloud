@@ -36,8 +36,11 @@ public class InstanceImpl implements Instance {
     private final InstanceDefinition definition;
     private final InstanceStateMachine stateMachine;
     private final Map<String, String> env;
-    private Optional<InstanceHost> host = Optional.empty();
+
     private InstanceReport report = DEFAULT_REPORT;
+
+    private Optional<InstanceHost> host = Optional.empty();
+    private Optional<ContainerInfo> containerInfo = Optional.empty();
 
     public InstanceImpl(
             final Context context,
@@ -140,12 +143,30 @@ public class InstanceImpl implements Instance {
         return definition;
     }
 
+    /**
+     * @throws IllegalStateException if the instance is not running
+     */
     @Override
     public InstanceHost getHost() {
         readLock.lock();
 
         try {
             return host.orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
+     * @throws IllegalStateException if the instance is not running
+     */
+    @Override
+    public ContainerInfo getContainerInfo() {
+        readLock.lock();
+
+        try {
+            return containerInfo
+                    .orElseThrow(Errors.throwException(IllegalStateException.class, "instance is not running"));
         } finally {
             readLock.unlock();
         }
@@ -173,13 +194,18 @@ public class InstanceImpl implements Instance {
             LOG.info("onLaunched(instance: {}, host: {})", getID(), instanceHost);
         }
     }
-    
+
     private final class OnRunning extends InstanceAction {
         @Nothrow
         @Override
         protected void doExec(final InstanceEvent event) {
-            LOG.info("onRunning(instance: {}, parent: {}): notify parent",
-                    getID(), parentID);
+            final ContainerInfo info = event.getPayload(ContainerInfo.class);
+            final ContainerInfo newInfo = new ContainerInfo(info.getName(), getHost().getIp());
+
+            containerInfo = Optional.of(newInfo);
+
+            LOG.info("onRunning(instance: {}, name: {}, parent: {}): notify parent",
+                    getID(), newInfo.getName(), parentID);
 
             context.getEventBus()
                     .post(new ClusterEvent(parentID, ClusterEventType.CHILD_RUNNING, getID()));

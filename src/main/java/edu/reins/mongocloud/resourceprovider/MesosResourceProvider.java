@@ -1,5 +1,7 @@
 package edu.reins.mongocloud.resourceprovider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ByteString;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.ResourceProvider;
@@ -23,8 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -41,6 +45,9 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
 
     @Autowired
     private EventBus eventBus;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private BlockingQueue<InstanceLaunchRequest> pendingTasks = new ArrayBlockingQueue<>(1024);
 
@@ -79,7 +86,13 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
                 break;
 
             case TASK_RUNNING:
-                notifyInstance(taskStatus.getTaskId(), InstanceEventType.RUNNING);
+                if (taskStatus.getReason() == Protos.TaskStatus.Reason.REASON_RECONCILIATION) {
+                    notifyInstance(taskStatus.getTaskId(), InstanceEventType.RUNNING);
+                } else {
+                    final ContainerInfo info = parseContainerInfo(taskStatus.getData());
+
+                    notifyInstance(taskStatus.getTaskId(), InstanceEventType.RUNNING, info);
+                }
                 break;
 
             case TASK_LOST:
@@ -167,6 +180,13 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         final InstanceID instanceID = new InstanceID(taskID.getValue());
 
         eventBus.post(new InstanceEvent(eventType, instanceID));
+    }
+
+    @Nothrow
+    private void notifyInstance(final Protos.TaskID taskID, final InstanceEventType eventType, final Object payload) {
+        final InstanceID instanceID = new InstanceID(taskID.getValue());
+
+        eventBus.post(new InstanceEvent(eventType, instanceID, payload));
     }
 
     @Override
@@ -259,5 +279,18 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         final int port = taskInfo.getContainer().getDocker().getPortMappings(0).getHostPort();
 
         return new InstanceHost(slaveID.getValue(), hostIP, port);
+    }
+
+    @Nothrow
+    private ContainerInfo parseContainerInfo(final ByteString bytes) {
+        try {
+            final Map<String, Object>[] container = objectMapper.readValue(bytes.toByteArray(), Map[].class);
+            final String containerName = (String) container[0].get("Name");
+            final ContainerInfo info = new ContainerInfo(containerName, null);
+
+            return info;
+        } catch (IOException e) {
+            throw new AssertionError("Bad containerInfo from docker", e);
+        }
     }
 }

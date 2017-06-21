@@ -2,7 +2,6 @@ package edu.reins.mongocloud.monitor.daemon;
 
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.Daemon;
-import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.model.ClusterID;
@@ -16,15 +15,12 @@ import java.util.Objects;
 
 @Daemon
 @Slf4j
-public class MetricCollector {
+public class ClusterMetricCollector {
     @Autowired
     private Monitor monitor;
 
     @Autowired
     private MongoMediator mongoMediator;
-
-    @Autowired
-    private EventBus eventBus;
 
     @Autowired
     private Context context;

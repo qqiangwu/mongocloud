@@ -1,6 +1,7 @@
 package edu.reins.mongocloud.monitor;
 
 import edu.reins.mongocloud.model.ClusterID;
+import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,8 @@ import java.util.List;
 @Component
 public class MonitorImpl implements Monitor {
     private final List<ClusterID> clusters = new ArrayList<>();
+
+    private final List<InstanceID> instances = new ArrayList<>();
 
     @Nothrow
     @Override
@@ -27,7 +30,25 @@ public class MonitorImpl implements Monitor {
 
     @Nothrow
     @Override
+    public synchronized void register(final InstanceID instanceID) {
+        instances.add(instanceID);
+    }
+
+    @Nothrow
+    @Override
+    public synchronized void unregister(final InstanceID instanceID) {
+        instances.remove(instanceID);
+    }
+
+    @Nothrow
+    @Override
     public synchronized Collection<ClusterID> getClusters() {
         return Collections.unmodifiableCollection(clusters);
+    }
+
+    @Nothrow
+    @Override
+    public synchronized Collection<InstanceID> getInstances() {
+        return Collections.unmodifiableCollection(instances);
     }
 }

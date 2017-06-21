@@ -117,6 +117,7 @@ public class ClusterAPI {
 
         if (instance.getState() == InstanceState.RUNNING) {
             vo.setHost(instance.getHost());
+            vo.setContainerInfo(instance.getContainerInfo());
         }
 
         return vo;

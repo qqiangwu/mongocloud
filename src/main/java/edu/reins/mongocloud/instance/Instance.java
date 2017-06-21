@@ -10,5 +10,14 @@ public interface Instance extends Fsm<InstanceState, InstanceEvent>{
     InstanceState getState();
     InstanceType getType();
     InstanceDefinition getDefinition();
+
+    /**
+     * @throws IllegalStateException if the instance is not running
+     */
     InstanceHost getHost();
+
+    /**
+     * @throws IllegalStateException if the instance is not running
+     */
+    ContainerInfo getContainerInfo();
 }
