@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MongoCommandRunner {
-    private static final BasicDBObject DB_CMD_GETCONF = new BasicDBObject().append("replSetGetConfig", 1);
+    private static final BasicDBObject CMD_GETCONF = new BasicDBObject("replSetGetConfig", 1);
+    private static final BasicDBObject CMD_SERVER_STATUS = new BasicDBObject("serverStatus", 1);
     private static final String DB_ADMIN = "admin";
 
     /**
@@ -24,7 +25,17 @@ public class MongoCommandRunner {
         return db.runCommand(cmd);
     }
 
+    /**
+     * @throws com.mongodb.MongoCommandException        if the command failed
+     */
     public Document getConfig(final InstanceHost host) {
-        return runCommand(host, DB_CMD_GETCONF).get("config", Document.class);
+        return runCommand(host, CMD_GETCONF).get("config", Document.class);
+    }
+
+    /**
+     * @throws com.mongodb.MongoCommandException        if the command failed
+     */
+    public Document getServerStatus(final InstanceHost host) {
+        return runCommand(host, CMD_SERVER_STATUS);
     }
 }

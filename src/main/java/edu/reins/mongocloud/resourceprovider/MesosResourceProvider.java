@@ -22,7 +22,6 @@ import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -37,9 +36,6 @@ import java.util.concurrent.BlockingQueue;
 @SoftState
 @Slf4j
 public class MesosResourceProvider implements ResourceProvider, Scheduler {
-    @Value("${docker.volume}")
-    private String dockerVolume;
-
     @Autowired
     private SchedulerDriver schedulerDriver;
 
@@ -259,7 +255,6 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         LOG.debug("launch(id: {}, slave: {})", request.getInstanceID(), offer.getSlaveId().getValue());
 
         val taskInfo = new TaskBuilder()
-                .setDockerVolume(dockerVolume)
                 .setOffer(offer)
                 .setInstanceRequest(request)
                 .build();
@@ -286,11 +281,15 @@ public class MesosResourceProvider implements ResourceProvider, Scheduler {
         try {
             final Map<String, Object>[] container = objectMapper.readValue(bytes.toByteArray(), Map[].class);
             final String containerName = (String) container[0].get("Name");
-            final ContainerInfo info = new ContainerInfo(containerName, null);
+            final ContainerInfo info = new ContainerInfo(skipLeadingSlash(containerName), null);
 
             return info;
         } catch (IOException e) {
             throw new AssertionError("Bad containerInfo from docker", e);
         }
+    }
+
+    private String skipLeadingSlash(final String containerName) {
+        return containerName.substring(1);
     }
 }

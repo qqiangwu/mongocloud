@@ -10,6 +10,7 @@ import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.model.InstanceDefinition;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.model.InstanceLaunchRequest;
+import edu.reins.mongocloud.support.Beans;
 import edu.reins.mongocloud.support.Errors;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.ToString;
@@ -37,7 +38,7 @@ public class InstanceImpl implements Instance {
     private final InstanceStateMachine stateMachine;
     private final Map<String, String> env;
 
-    private InstanceReport report = DEFAULT_REPORT;
+    private InstanceReport report = DEFAULT_REPORT.clone();
 
     private Optional<InstanceHost> host = Optional.empty();
     private Optional<ContainerInfo> containerInfo = Optional.empty();
@@ -238,7 +239,9 @@ public class InstanceImpl implements Instance {
         protected void doExec(final InstanceEvent event) {
             LOG.info("onUpdateStatus(instance: {})", getID());
 
-            report = event.getPayload(InstanceReport.class);
+            final InstanceReport update = event.getPayload(InstanceReport.class);
+
+            Beans.overrideIfNonNull(update, report);
         }
     }
 }

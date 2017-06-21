@@ -12,17 +12,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class TaskBuilder {
-    private String volume;
     private Protos.Offer offer;
     private InstanceLaunchRequest instanceRequest;
     private InstanceDefinition definition;
-
-    @Nothrow
-    public TaskBuilder setDockerVolume(final String volume) {
-        this.volume = volume;
-
-        return this;
-    }
 
     @Nothrow
     public TaskBuilder setOffer(final Protos.Offer offer) {
@@ -43,7 +35,6 @@ public class TaskBuilder {
      * @throws NullPointerException if any fields are not provided
      */
     public Protos.TaskInfo build() {
-        Objects.requireNonNull(volume);
         Objects.requireNonNull(offer);
         Objects.requireNonNull(instanceRequest);
 
@@ -161,17 +152,8 @@ public class TaskBuilder {
 
         attachDockerParameters(dockerBuilder);
 
-        // FIXME        add volume support
-        /*
-        val dockerVolume = Protos.Volume.newBuilder()
-                .setContainerPath(volume)
-                .setMode(Protos.Volume.Mode.RW)
-                .build();
-        */
-
         return Protos.ContainerInfo.newBuilder()
                 .setType(Protos.ContainerInfo.Type.DOCKER)
-                //.addVolumes(dockerVolume)
                 .setDocker(dockerBuilder);
     }
 

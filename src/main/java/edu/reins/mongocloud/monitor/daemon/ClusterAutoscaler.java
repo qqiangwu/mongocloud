@@ -18,9 +18,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 @Daemon
 @Slf4j
-public class Autoscaler {
+public class ClusterAutoscaler {
     private static final double STORAGE_HIGH_UTILIZATION = 0.7;
-    private static final double STORAGE_LOW_UTILIZATION = 0.2;
+    private static final double STORAGE_LOW_UTILIZATION = 0.3;
 
     @Autowired
     private Monitor monitor;
