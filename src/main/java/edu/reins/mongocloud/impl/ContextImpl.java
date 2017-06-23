@@ -12,6 +12,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -54,6 +55,18 @@ public class ContextImpl implements Context {
     @Override
     public Map<ClusterID, Cluster> getClusters() {
         return clusters;
+    }
+
+    @Nothrow
+    @Override
+    public Optional<Instance> getInstance(final InstanceID instanceID) {
+        return Optional.ofNullable(instances.get(instanceID));
+    }
+
+    @Nothrow
+    @Override
+    public Optional<Cluster> getCluster(final ClusterID clusterID) {
+        return Optional.ofNullable(clusters.get(clusterID));
     }
 
     @Nothrow

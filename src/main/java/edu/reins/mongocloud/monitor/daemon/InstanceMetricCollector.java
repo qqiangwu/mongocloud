@@ -109,10 +109,8 @@ public class InstanceMetricCollector {
             }
 
             final List value = (List)((Map) result.get(0)).get("value");
-            final double rawCPUUsage = Double.parseDouble((String) value.get(1));
 
-            // 容器分配了1个core，所以利用率理论最高为25%，这里乘4做调整
-            return (int)(rawCPUUsage * 100 * 4);
+            return (int) Double.parseDouble((String) value.get(1));
         } catch (RestClientException e) {
             LOG.warn("restFailed(url: {}, query: {})", queryURL, query);
 

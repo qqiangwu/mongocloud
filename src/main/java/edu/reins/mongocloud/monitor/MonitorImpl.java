@@ -5,50 +5,50 @@ import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
 public class MonitorImpl implements Monitor {
-    private final List<ClusterID> clusters = new ArrayList<>();
+    private final List<ClusterID> clusters = new CopyOnWriteArrayList<>();
 
-    private final List<InstanceID> instances = new ArrayList<>();
+    private final List<InstanceID> instances = new CopyOnWriteArrayList<>();
 
     @Nothrow
     @Override
-    public synchronized void register(final ClusterID clusterID) {
+    public void register(final ClusterID clusterID) {
         clusters.add(clusterID);
     }
 
     @Nothrow
     @Override
-    public synchronized void unregister(final ClusterID clusterID) {
+    public void unregister(final ClusterID clusterID) {
         clusters.remove(clusterID);
     }
 
     @Nothrow
     @Override
-    public synchronized void register(final InstanceID instanceID) {
+    public void register(final InstanceID instanceID) {
         instances.add(instanceID);
     }
 
     @Nothrow
     @Override
-    public synchronized void unregister(final InstanceID instanceID) {
+    public void unregister(final InstanceID instanceID) {
         instances.remove(instanceID);
     }
 
     @Nothrow
     @Override
-    public synchronized Collection<ClusterID> getClusters() {
+    public Collection<ClusterID> getClusters() {
         return Collections.unmodifiableCollection(clusters);
     }
 
     @Nothrow
     @Override
-    public synchronized Collection<InstanceID> getInstances() {
+    public Collection<InstanceID> getInstances() {
         return Collections.unmodifiableCollection(instances);
     }
 }
