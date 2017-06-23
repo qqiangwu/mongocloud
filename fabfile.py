@@ -2,7 +2,7 @@ from fabric.api import local, env, cd
 from fabric.decorators import *
 from fabric.operations import *
 
-env.hosts = ['reins@192.168.1.20']
+env.hosts = ['reins@192.168.1.64']
 env.password = 123456
 env.warn_only = True
 
@@ -25,4 +25,4 @@ def upload():
 
 def launch():
     with cd(work_dir):
-        run('LIBPROCESS_IP=192.168.1.20 java -jar mongocloud.jar | tee cloud.log')
+        run('LIBPROCESS_IP=192.168.1.64 java -jar mongocloud.jar | tee cloud.log')
