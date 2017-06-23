@@ -97,6 +97,21 @@ public class ClusterAPI {
         context.getEventBus().post(new ClusterEvent(cluster.getID(), ClusterEventType.SCALE_IN));
     }
 
+    @GetMapping(path = "routers")
+    public String getRouter() {
+        final Cluster cluster = context.getClusters().values().stream()
+                .filter(c -> c instanceof RouterCluster)
+                .findAny()
+                .orElseThrow(Errors.throwException(IllegalStateException.class, "router not found"));
+
+        final String url = cluster.getInstances().stream()
+                .map(Instance::getHost)
+                .map(h -> String.format("%s:%d", h.getIp(), h.getPort()))
+                .collect(Collectors.joining(","));
+
+        return String.format("mongodb://%s/wuqq", url);
+    }
+
     private ClusterVO toVO(final Cluster cluster) {
         final ClusterVO vo = new ClusterVO();
 

@@ -6,6 +6,7 @@ import edu.reins.mongocloud.MongoMediator;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.monitor.Monitor;
+import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ public class ClusterMetricCollector {
     private Context context;
 
     @Nothrow
-    @Scheduled(fixedDelay = 30 * 1000)
+    @Scheduled(fixedDelay = Units.SECONDS)
     public void exec() {
         monitor.getClusters()
                 .stream()

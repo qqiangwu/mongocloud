@@ -11,6 +11,7 @@ import edu.reins.mongocloud.instance.InstanceReport;
 import edu.reins.mongocloud.model.InstanceID;
 import edu.reins.mongocloud.mongo.MongoCommandRunner;
 import edu.reins.mongocloud.monitor.Monitor;
+import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -51,7 +52,7 @@ public class InstanceMetricCollector {
     private String queryPattern;
 
     @Nothrow
-    @Scheduled(fixedDelay = 10 * 1000)
+    @Scheduled(fixedDelay = Units.SECONDS)
     public void exec() {
         monitor.getInstances()
                 .stream()

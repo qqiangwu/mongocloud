@@ -20,22 +20,23 @@ import java.util.Optional;
 public class MetricExporter {
     private static final String LABEL_INSTANCE_ID = "id";
     private static final String LABEL_INSTANCE_TYPE = "type";
+    private static final String LABEL_INSTANCE_NAME = "name";
     private static final String LABEL_CLUSTER_ID = "id";
 
     private static final Gauge INSTANCE_CPU_USAGE = new Gauge.Builder()
             .name("instance_cpu_usage")
             .help("The cpu usage of a instance")
-            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE)
+            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE, LABEL_INSTANCE_NAME)
             .register();
     private static final Gauge INSTANCE_QPS = new Gauge.Builder()
             .name("instance_qps")
             .help("Instance reads per seconds")
-            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE)
+            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE, LABEL_INSTANCE_NAME)
             .register();
     private static final Gauge INSTANCE_TPS = new Gauge.Builder()
             .name("instance_tps")
             .help("Instance writes per seconds")
-            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE)
+            .labelNames(LABEL_INSTANCE_ID, LABEL_INSTANCE_TYPE, LABEL_INSTANCE_NAME)
             .register();
     private static final Gauge CLUSTER_SHARDS = new Gauge.Builder()
             .name("cluster_shard_count")
@@ -55,7 +56,7 @@ public class MetricExporter {
     private Context context;
 
     @Nothrow
-    @Scheduled(fixedDelay = 5 * Units.SECONDS)
+    @Scheduled(fixedDelay = Units.SECONDS)
     public void collect() {
         collectInstances();
         collectClusters();
@@ -74,11 +75,12 @@ public class MetricExporter {
     private void collectInstance(final Instance instance) {
         final String id = instance.getID().getValue();
         final String type = instance.getType().toString();
+        final String name = instance.getContainerInfo().getName();
         final InstanceReport report = instance.getReport();
 
-        INSTANCE_CPU_USAGE.labels(id, type).set(report.getCpuPercent());
-        INSTANCE_QPS.labels(id, type).set(report.getTotalReads());
-        INSTANCE_TPS.labels(id, type).set(report.getTotalWrites());
+        INSTANCE_CPU_USAGE.labels(id, type, name).set(report.getCpuPercent());
+        INSTANCE_QPS.labels(id, type, name).set(report.getTotalReads());
+        INSTANCE_TPS.labels(id, type, name).set(report.getTotalWrites());
     }
 
     @Nothrow
