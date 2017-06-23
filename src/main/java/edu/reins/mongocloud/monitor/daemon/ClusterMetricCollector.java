@@ -27,7 +27,7 @@ public class ClusterMetricCollector {
     private Context context;
 
     @Nothrow
-    @Scheduled(fixedDelay = Units.SECONDS)
+    @Scheduled(fixedDelay = 5 * Units.SECONDS)
     public void exec() {
         monitor.getClusters()
                 .stream()

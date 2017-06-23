@@ -3,10 +3,7 @@ package edu.reins.mongocloud.mongo.command;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
 import edu.reins.mongocloud.EventBus;
-import edu.reins.mongocloud.cluster.Cluster;
-import edu.reins.mongocloud.cluster.ClusterEvent;
-import edu.reins.mongocloud.cluster.ClusterEventType;
-import edu.reins.mongocloud.cluster.ClusterReport;
+import edu.reins.mongocloud.cluster.*;
 import edu.reins.mongocloud.instance.InstanceHost;
 import edu.reins.mongocloud.mongo.MongoCommandRunner;
 import edu.reins.mongocloud.support.Units;
@@ -37,10 +34,11 @@ public class CollectClusterCommand {
      */
     @Retryable(MongoException.class)
     public void exec(final Cluster cluster) {
-        val result = commandRunner.runCommand(getMaster(cluster), DB_CMD_STATS);
+        val master = getMaster(cluster);
+        val result = commandRunner.getStorageInMB(master);
 
         val report = ClusterReport.builder()
-                .storageInMB(result.getInteger("dataSize").intValue())
+                .storageInMB(result)
                 .build();
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.UPDATE_STATUS, report));
@@ -56,6 +54,8 @@ public class CollectClusterCommand {
 
     @Nothrow
     private InstanceHost getMaster(final Cluster cluster) {
-        return cluster.getInstances().get(0).getHost();
+        final RouterCluster router = ((ShardedCluster) cluster).getRouterCluster();
+
+        return router.getInstances().get(0).getHost();
     }
 }

@@ -40,7 +40,7 @@ public class RemoveCommand {
         val master = getMaster(removeRequest.getRouter());
         val cmd = buildCommand(removeRequest);
 
-        commandRunner.runCommand(master, cmd);
+        commandRunner.runAdminCommand(master, cmd);
 
         eventBus.post(new ClusterEvent(
                 removeRequest.getCluster(), ClusterEventType.CHILD_REMOVED, removeRequest.getParticipant()));

@@ -1,6 +1,7 @@
-package edu.reins.mongocloud.support;
+package edu.reins.mongocloud.resourceprovider.support;
 
 import edu.reins.mongocloud.model.InstanceDefinition;
+import edu.reins.mongocloud.resourceprovider.support.ResourceDescriptor;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.val;
 import org.apache.mesos.Protos;

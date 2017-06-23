@@ -76,7 +76,7 @@ public class MongoMediatorImpl implements MongoMediator {
     @Nothrow
     @Override
     public void collect(final Cluster cluster) {
-        LOG.info("collect(cluster: {})", cluster.getID());
+        LOG.trace("collect(cluster: {})", cluster.getID());
 
         collectClusterCommand.exec(cluster);
     }

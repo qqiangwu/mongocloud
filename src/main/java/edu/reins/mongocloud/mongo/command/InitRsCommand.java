@@ -42,7 +42,7 @@ public class InitRsCommand {
         val cmd = buildCmdForInitRs(rsRequest);
         val master = getMaster(rsRequest);
 
-        commandRunner.runCommand(master, cmd);
+        commandRunner.runAdminCommand(master, cmd);
 
         eventBus.post(new ClusterEvent(rsRequest.getClusterID(), ClusterEventType.RS_INITED));
     }

@@ -1,4 +1,4 @@
-package edu.reins.mongocloud.support;
+package edu.reins.mongocloud.resourceprovider.support;
 
 import edu.reins.mongocloud.instance.Instances;
 import edu.reins.mongocloud.model.InstanceDefinition;

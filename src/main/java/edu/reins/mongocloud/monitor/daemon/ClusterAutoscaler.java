@@ -9,6 +9,7 @@ import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.cluster.ClusterReport;
 import edu.reins.mongocloud.model.ClusterID;
 import edu.reins.mongocloud.monitor.Monitor;
+import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -16,7 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 
-@Daemon
+// disabled for the moment
+// @Daemon
 @Slf4j
 public class ClusterAutoscaler {
     private static final double STORAGE_HIGH_UTILIZATION = 0.7;
@@ -35,7 +37,7 @@ public class ClusterAutoscaler {
     private int capacity;
 
     @Nothrow
-    @Scheduled(fixedDelay = 60 * 1000)
+    @Scheduled(fixedDelay = 60 * Units.SECONDS)
     public void exec() {
         monitor.getClusters().forEach(this::tryScaling);
     }

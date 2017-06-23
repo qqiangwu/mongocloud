@@ -193,6 +193,11 @@ public class ShardedCluster implements Cluster {
     }
 
     @Nothrow
+    public RouterCluster getRouterCluster() {
+        return routerCluster;
+    }
+
+    @Nothrow
     @Override
     public ClusterReport getReport() {
         readLock.lock();
@@ -307,7 +312,7 @@ public class ShardedCluster implements Cluster {
         @Nothrow
         @Override
         protected void doExec(final ClusterEvent event) {
-            LOG.info("onStatusUpdate(cluster: {})", getID());
+            LOG.trace("onStatusUpdate(cluster: {})", getID());
 
             final ClusterReport newReport = event.getPayload(ClusterReport.class);
 

@@ -47,7 +47,7 @@ public class RsJoinCommand {
         final Document conf = commandRunner.getConfig(master);
         final BasicDBObject cmd = buildCommand(joinRequest, conf);
 
-        commandRunner.runCommand(master, cmd);
+        commandRunner.runAdminCommand(master, cmd);
 
         eventBus.post(
                 new ClusterEvent(joinRequest.getCluster(), ClusterEventType.CHILD_JOINED, joinRequest.getInstance()));

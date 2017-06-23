@@ -46,7 +46,7 @@ public class RsRemoveCommand {
         final Document conf = commandRunner.getConfig(master);
         final BasicDBObject cmd = buildCommand(request, conf);
 
-        commandRunner.runCommand(master, cmd);
+        commandRunner.runAdminCommand(master, cmd);
 
         eventBus.post(
                 new ClusterEvent(request.getCluster(), ClusterEventType.CHILD_REMOVED, request.getInstance()));

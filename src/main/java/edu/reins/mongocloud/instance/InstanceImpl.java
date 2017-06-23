@@ -252,7 +252,7 @@ public class InstanceImpl implements Instance {
         @Nothrow
         @Override
         protected void doExec(final InstanceEvent event) {
-            LOG.info("onUpdateStatus(instance: {})", getID());
+            LOG.trace("onUpdateStatus(instance: {})", getID());
 
             final InstanceReport update = event.getPayload(InstanceReport.class);
 

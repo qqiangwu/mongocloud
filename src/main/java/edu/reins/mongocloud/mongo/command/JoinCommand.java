@@ -41,7 +41,7 @@ public class JoinCommand {
         val master = getMaster(joinRequest.getRouter());
         val cmd = buildCommand(joinRequest);
 
-        commandRunner.runCommand(master, cmd);
+        commandRunner.runAdminCommand(master, cmd);
 
         eventBus.post(new ClusterEvent(
                 joinRequest.getCluster(), ClusterEventType.CHILD_JOINED, joinRequest.getParticipant()));
@@ -66,8 +66,9 @@ public class JoinCommand {
 
         return new BasicDBObject()
                 .append("addShard", shardRef)
-                .append("name", replicaName)
-                .append("maxSize", master.getDefinition().getDisk());
+                .append("name", replicaName);
+                // FIXME    limit the size of a shard
+                //.append("maxSize", master.getDefinition().getDisk());
     }
 
     /**

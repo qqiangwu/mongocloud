@@ -1,7 +1,6 @@
 package edu.reins.mongocloud.monitor.daemon;
 
-import com.mongodb.MongoCommandException;
-import com.mongodb.MongoTimeoutException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
@@ -53,7 +52,7 @@ public class InstanceMetricCollector {
     private String queryPattern;
 
     @Nothrow
-    @Scheduled(fixedDelay = Units.SECONDS)
+    @Scheduled(fixedDelay = 3 * Units.SECONDS)
     public void exec() {
         monitor.getInstances()
                 .stream()
@@ -131,7 +130,7 @@ public class InstanceMetricCollector {
             final int writes = opcounters.getInteger("insert") + opcounters.getInteger("update");
 
             return Pair.of(reads, writes);
-        } catch (MongoCommandException e) {
+        } catch (MongoException e) {
             LOG.warn("< collectFailed(instance: {}): collect tps failed when connecting mongodb", instance.getID());
             return Pair.of(null, null);
         }
