@@ -6,7 +6,6 @@ import edu.reins.mongocloud.cluster.ClusterReport;
 import edu.reins.mongocloud.cluster.ShardedCluster;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceReport;
-import edu.reins.mongocloud.instance.InstanceType;
 import edu.reins.mongocloud.monitor.Monitor;
 import edu.reins.mongocloud.support.Units;
 import edu.reins.mongocloud.support.annotation.Nothrow;
@@ -19,9 +18,9 @@ import java.util.Optional;
 
 @Component
 public class MetricExporter {
-    private static final String LABEL_INSTANCE_ID = "instance";
+    private static final String LABEL_INSTANCE_ID = "id";
     private static final String LABEL_INSTANCE_TYPE = "type";
-    private static final String LABEL_CLUSTER_ID = "cluster";
+    private static final String LABEL_CLUSTER_ID = "id";
 
     private static final Gauge INSTANCE_CPU_USAGE = new Gauge.Builder()
             .name("instance_cpu_usage")
