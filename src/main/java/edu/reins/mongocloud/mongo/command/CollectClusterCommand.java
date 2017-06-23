@@ -1,7 +1,7 @@
 package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.Cluster;
 import edu.reins.mongocloud.cluster.ClusterEvent;
@@ -32,10 +32,10 @@ public class CollectClusterCommand {
     private MongoCommandRunner commandRunner;
 
     /**
-     * @throws MongoCommandException if the command failed and if will be handled by the recover method
+     * @throws MongoException if the command failed and if will be handled by the recover method
      * @throws RuntimeException      if programming error occurs
      */
-    @Retryable(MongoCommandException.class)
+    @Retryable(MongoException.class)
     public void exec(final Cluster cluster) {
         val result = commandRunner.runCommand(getMaster(cluster), DB_CMD_STATS);
 
@@ -48,7 +48,7 @@ public class CollectClusterCommand {
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final Cluster cluster) {
+    public void recover(final MongoException e, final Cluster cluster) {
         LOG.error("< collect(cluster: {})", cluster.getID(), e);
 
         eventBus.post(new ClusterEvent(cluster.getID(), ClusterEventType.FAIL, e.getMessage()));

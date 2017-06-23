@@ -1,6 +1,7 @@
 package edu.reins.mongocloud.monitor.daemon;
 
 import com.mongodb.MongoCommandException;
+import com.mongodb.MongoTimeoutException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
@@ -74,7 +75,7 @@ public class InstanceMetricCollector {
 
     @Nothrow
     private void doCollect(final Instance instance) {
-        LOG.info("collectMetric(instance: {})", instance.getID());
+        LOG.trace("collectMetric(instance: {})", instance.getID());
 
         final Integer cpuPercent = collectCPU(instance);
         final Pair<Integer, Integer> counters = collectTPS(instance);

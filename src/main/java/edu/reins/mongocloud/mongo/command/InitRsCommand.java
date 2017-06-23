@@ -1,7 +1,7 @@
 package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.ClusterEvent;
 import edu.reins.mongocloud.cluster.ClusterEventType;
@@ -32,10 +32,10 @@ public class InitRsCommand {
     private MongoCommandRunner commandRunner;
 
     /**
-     * @throws MongoCommandException if the command failed and if will be handled by the recover method
+     * @throws MongoException if the command failed and if will be handled by the recover method
      * @throws RuntimeException      if programming error occurs
      */
-    @Retryable(MongoCommandException.class)
+    @Retryable(MongoException.class)
     public void exec(final RsRequest rsRequest) {
         Assert.notEmpty(rsRequest.getMembers());
 
@@ -49,7 +49,7 @@ public class InitRsCommand {
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final RsRequest rsRequest) {
+    public void recover(final MongoException e, final RsRequest rsRequest) {
         LOG.error("< initRs(cluster: {}): failed to init", rsRequest.getClusterID(), e);
 
         eventBus.post(new ClusterEvent(rsRequest.getClusterID(), ClusterEventType.FAIL, e.getMessage()));

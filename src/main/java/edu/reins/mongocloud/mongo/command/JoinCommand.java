@@ -1,7 +1,7 @@
 package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.Cluster;
@@ -33,10 +33,10 @@ public class JoinCommand {
     private MongoCommandRunner commandRunner;
 
     /**
-     * @throws MongoCommandException if the command failed and if will be handled by the recover method
+     * @throws MongoException if the command failed and if will be handled by the recover method
      * @throws RuntimeException      if programming error occurs
      */
-    @Retryable(MongoCommandException.class)
+    @Retryable(MongoException.class)
     public void exec(final JoinRequest joinRequest) {
         val master = getMaster(joinRequest.getRouter());
         val cmd = buildCommand(joinRequest);
@@ -49,7 +49,7 @@ public class JoinCommand {
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final JoinRequest joinRequest) {
+    public void recover(final MongoException e, final JoinRequest joinRequest) {
         LOG.error("< join(cluster: {})", joinRequest.getCluster(), e);
 
         eventBus.post(new ClusterEvent(joinRequest.getCluster(), ClusterEventType.FAIL, e.getMessage()));

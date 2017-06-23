@@ -1,7 +1,7 @@
 package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.Cluster;
@@ -38,10 +38,10 @@ public class RsJoinCommand {
     private MongoCommandRunner commandRunner;
 
     /**
-     * @throws MongoCommandException if the command failed and if will be handled by the recover method
+     * @throws MongoException if the command failed and if will be handled by the recover method
      * @throws RuntimeException      if programming error occurs
      */
-    @Retryable(MongoCommandException.class)
+    @Retryable(MongoException.class)
     public void exec(final RsJoinRequest joinRequest) {
         final InstanceHost master = getMaster(joinRequest.getCluster());
         final Document conf = commandRunner.getConfig(master);
@@ -55,7 +55,7 @@ public class RsJoinCommand {
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final RsJoinRequest joinRequest) {
+    public void recover(final MongoException e, final RsJoinRequest joinRequest) {
         LOG.error("< rsJoin(cluster: {}, child: {})", joinRequest.getCluster(), joinRequest.getInstance(), e);
 
         eventBus.post(new ClusterEvent(joinRequest.getCluster(), ClusterEventType.FAIL, e.getMessage()));

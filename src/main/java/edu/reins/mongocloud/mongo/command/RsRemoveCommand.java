@@ -1,7 +1,7 @@
 package edu.reins.mongocloud.mongo.command;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.EventBus;
 import edu.reins.mongocloud.cluster.Cluster;
@@ -37,10 +37,10 @@ public class RsRemoveCommand {
     private MongoCommandRunner commandRunner;
 
     /**
-     * @throws MongoCommandException if the command failed and if will be handled by the recover method
+     * @throws MongoException if the command failed and if will be handled by the recover method
      * @throws RuntimeException      if programming error occurs
      */
-    @Retryable(MongoCommandException.class)
+    @Retryable(MongoException.class)
     public void exec(final RsRemoveRequest request) {
         final InstanceHost master = getMaster(request.getCluster());
         final Document conf = commandRunner.getConfig(master);
@@ -54,7 +54,7 @@ public class RsRemoveCommand {
 
     @Nothrow
     @Recover
-    public void recover(final MongoCommandException e, final RsRemoveRequest request) {
+    public void recover(final MongoException e, final RsRemoveRequest request) {
         LOG.error("< rsRemove(cluster: {}, child: {})", request.getCluster(), request.getInstance(), e);
 
         eventBus.post(new ClusterEvent(request.getCluster(), ClusterEventType.FAIL, e.getMessage()));

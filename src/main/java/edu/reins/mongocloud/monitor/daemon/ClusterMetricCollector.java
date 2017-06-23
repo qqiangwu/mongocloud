@@ -49,7 +49,7 @@ public class ClusterMetricCollector {
 
     @Nothrow
     private void collectClusterMetric(final Cluster cluster) {
-        LOG.info("collectMetric(cluster: {})", cluster.getID());
+        LOG.trace("collectMetric(cluster: {})", cluster.getID());
 
         mongoMediator.collect(cluster);
     }
