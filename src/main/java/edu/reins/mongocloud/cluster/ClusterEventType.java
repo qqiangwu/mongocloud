@@ -15,6 +15,8 @@ public enum ClusterEventType {
 
     // RS构建完成
     RS_INITED,
+    // RS中master改变了
+    RS_FAILOVER,
 
     // 遇到某种错误
     FAIL,

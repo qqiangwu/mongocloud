@@ -128,6 +128,11 @@ public class InstanceImpl implements Instance {
     }
 
     @Override
+    public ClusterID getParentID() {
+        return parentID;
+    }
+
+    @Override
     public InstanceState getState() {
         readLock.lock();
 

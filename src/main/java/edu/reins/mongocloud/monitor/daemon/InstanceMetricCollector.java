@@ -4,6 +4,8 @@ import com.mongodb.MongoException;
 import edu.reins.mongocloud.Context;
 import edu.reins.mongocloud.Daemon;
 import edu.reins.mongocloud.EventBus;
+import edu.reins.mongocloud.cluster.ClusterEvent;
+import edu.reins.mongocloud.cluster.ClusterEventType;
 import edu.reins.mongocloud.instance.Instance;
 import edu.reins.mongocloud.instance.InstanceEvent;
 import edu.reins.mongocloud.instance.InstanceEventType;
@@ -122,9 +124,10 @@ public class InstanceMetricCollector {
     @Nothrow
     private Pair<Integer, Integer> collectTPS(final Instance instance) {
         try {
-            final Document opcounters = commandRunner
-                    .getServerStatus(instance.getHost())
-                    .get("opcounters", Document.class);
+            final Document result = commandRunner.getServerStatus(instance.getHost());
+            final Document opcounters = result.get("opcounters", Document.class);
+
+            checkFailover(result, instance);
 
             final int reads = opcounters.getInteger("query");
             final int writes = opcounters.getInteger("insert") + opcounters.getInteger("update");
@@ -133,6 +136,19 @@ public class InstanceMetricCollector {
         } catch (MongoException e) {
             LOG.warn("< collectFailed(instance: {}): collect tps failed when connecting mongodb", instance.getID());
             return Pair.of(null, null);
+        }
+    }
+
+    @Nothrow
+    private void checkFailover(final Document document, final Instance instance) {
+        final Document repl = document.get("repl", Document.class);
+
+        if (repl != null) {
+            final boolean isMaster = repl.getBoolean("ismaster", false);
+
+            if (isMaster) {
+                eventBus.post(new ClusterEvent(instance.getParentID(), ClusterEventType.RS_FAILOVER, instance.getID()));
+            }
         }
     }
 }

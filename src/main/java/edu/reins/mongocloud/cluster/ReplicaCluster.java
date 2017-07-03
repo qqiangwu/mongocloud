@@ -15,10 +15,8 @@ import edu.reins.mongocloud.support.annotation.Nothrow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -39,7 +37,11 @@ public class ReplicaCluster implements Cluster {
     private final ClusterStateMachine stateMachine;
     private final InstanceDefinition dataServerDef;
     private final Map<String, String> env;
+
     private int idSeen;
+
+    @Nullable
+    private Instance master;
 
     @Nothrow
     public ReplicaCluster(final Cluster parent, final int idx, final Context context) {
@@ -121,6 +123,10 @@ public class ReplicaCluster implements Cluster {
         builder.transition()
                 .from(ClusterState.WAIT_INSTANCE).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_JOINED);
+        builder.transition()
+                .from(ClusterState.WAIT_INSTANCE).to(ClusterState.RUNNING)
+                .on(ClusterEventType.FAIL)
+                .perform(new OnJoinFailed());
 
         // Scale in operation
         builder.transition()
@@ -140,6 +146,12 @@ public class ReplicaCluster implements Cluster {
                 .from(ClusterState.SCALING_IN).to(ClusterState.RUNNING)
                 .on(ClusterEventType.CHILD_FINISHED)
                 .perform(new OnChildFinished());
+
+        // failover
+        builder.transition()
+                .from(ClusterState.RUNNING).to(ClusterState.RUNNING)
+                .on(ClusterEventType.RS_FAILOVER)
+                .perform(new OnFailover());
 
         // done
         return builder.newStateMachine(ClusterState.NEW, this, context);
@@ -177,6 +189,16 @@ public class ReplicaCluster implements Cluster {
 
     @Nothrow
     @Override
+    public Instance getMaster() {
+        if (master == null) {
+            throw new IllegalStateException("No master");
+        }
+
+        return master;
+    }
+
+    @Nothrow
+    @Override
     public void handle(final ClusterEvent event) {
         writeLock.lock();
 
@@ -200,6 +222,8 @@ public class ReplicaCluster implements Cluster {
                 instanceContext.put(instance.getID(), instance);
                 eventBus.post(new InstanceEvent(InstanceEventType.INIT, instance.getID()));
             });
+
+            master = instances.get(0);
         }
     }
 
@@ -334,6 +358,35 @@ public class ReplicaCluster implements Cluster {
                     .map(Instance::getID)
                     .filter(victim::equals)
                     .forEach(id -> notifyChild(id, InstanceEventType.KILL));
+        }
+    }
+
+    private final class OnJoinFailed extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            final Instance instance = instances.get(instances.size() - 1);
+
+            LOG.info("onJoinFailed(cluster: {}, child: {}): kill the child", getID(), instance.getID());
+
+            notifyChild(instance.getID(), InstanceEventType.KILL);
+        }
+    }
+
+    private final class OnFailover extends ClusterAction {
+        @Nothrow
+        @Override
+        protected void doExec(final ClusterEvent event) {
+            final InstanceID newMaster = event.getPayload(InstanceID.class);
+
+            if (master == null || !master.getID().equals(newMaster)) {
+                LOG.info("onFailover(cluster: {}, master: {})", getID(), event.getPayload(InstanceID.class));
+
+                instances.stream()
+                        .filter(i -> i.getID().equals(newMaster))
+                        .findAny()
+                        .ifPresent(i -> master = i);
+            }
         }
     }
 
